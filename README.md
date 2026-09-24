@@ -2,8 +2,8 @@
 
 A new local Command Center for planning and tracking projects in their own Git
 repositories. This repository currently contains the first **experimental format
-draft**, schemas, fixtures and a read-only validator. The application and MCP server
-are next; neither is implemented yet.
+draft**, schemas, fixtures, validators and a shared TypeScript file/Git reader.
+The application and MCP server are next; neither is implemented yet.
 
 The working name **Repository Project Format (RPF)** is provisional. The goal is
 an openly implementable format that other tools can read and write. This is a
@@ -43,6 +43,20 @@ Read [the draft](spec/0.1.md), [worktree workflow](spec/worktrees.md),
 `examples/minimal` is a portable example; `.command/` tracks this repository itself.
 
 ## Validate the draft fixtures
+
+The shared application core can be verified with Bun 1.4:
+
+```sh
+bun install --frozen-lockfile
+bun test tests/core.test.ts
+bun run typecheck
+```
+
+It keeps registrations in `COMMAND_HOME/projects.json` (by default
+`~/.local/share/command/projects.json`), outside managed repositories. A project
+UUID identifies shared planning history; a Git common-directory identity
+distinguishes local clones and deduplicates linked worktrees. Registration records
+the integration branch; re-register after deliberately changing that branch.
 
 Python 3.10+ and the dependencies in `requirements-dev.txt` are needed only for
 the reference validator. Implementations of the format may use any language.
