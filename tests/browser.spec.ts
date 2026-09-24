@@ -8,7 +8,7 @@ import { git, snapshot } from '../packages/core/index';
 let f: ReturnType<typeof fixture>, child: ChildProcess, base = '';
 test.beforeAll(async () => {
   f = fixture(); f.registry.unregister(f.project.id);
-  child = spawn('bun', ['apps/server.ts'], { cwd: process.cwd(), env: { ...process.env, COMMAND_HOME: f.registry.home, COMMAND_PORT: '0' }, stdio: ['ignore', 'pipe', 'pipe'] });
+  child = spawn('bun', ['apps/server.ts'], { cwd: process.cwd(), env: { ...process.env, ALPHABOOK_HOME: f.registry.home, ALPHABOOK_PORT: '0' }, stdio: ['ignore', 'pipe', 'pipe'] });
   base = await new Promise<string>((resolve, reject) => {
     const timeout = setTimeout(() => reject(new Error('Browser test server did not start')), 10_000);
     child.stdout!.on('data', chunk => { const found = /http:\/\/127\.0\.0\.1:\d+/.exec(String(chunk)); if (found) { clearTimeout(timeout); resolve(found[0]); } });
@@ -21,6 +21,8 @@ test.afterAll(async () => { if (child && child.exitCode === null) { child.kill()
 test('shared dashboard, four worktrees, file-only updates and safe UI CRUD', async ({ page }, info) => {
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   await page.goto(base);
+  await expect(page).toHaveTitle('Alphabook');
+  await expect(page.getByRole('link', { name: 'Alphabook home' })).toBeVisible();
   await page.getByRole('button', { name: 'Register your first project' }).click();
   await page.getByLabel('Absolute project directory').fill(f.root);
   await page.getByRole('button', { name: 'Register project', exact: true }).click();
@@ -30,7 +32,7 @@ test('shared dashboard, four worktrees, file-only updates and safe UI CRUD', asy
   const changes = new Map<string, string>();
   for (let i = 1; i <= 4; i++) {
     git(f.root, ['worktree', 'add', '-b', `task/T-00${i}`, join(f.dir, `worker-${i}`)]);
-    changes.set(`.command/tasks/T-00${i}.md`, task(`T-00${i}`, 'in_progress', `branches: [task/T-00${i}]\nassignee: agent-${i}\n`));
+    changes.set(`tasks/T-00${i}.md`, task(`T-00${i}`, 'in_progress', `branches: [task/T-00${i}]\nassignee: agent-${i}\n`));
   }
   f.rawPlan(changes);
   await expect(page.locator('.activity-card')).toHaveCount(4, { timeout: 10_000 });
@@ -50,7 +52,7 @@ test('shared dashboard, four worktrees, file-only updates and safe UI CRUD', asy
 
   await page.getByRole('button', { name: 'Documentation', exact: true }).click();
   await page.getByRole('button', { name: '+ New', exact: true }).click();
-  await page.getByLabel('Repository-relative planning path').fill('.command/docs/ui.md');
+  await page.getByLabel('Repository-relative planning path').fill('docs/ui.md');
   await page.getByLabel('File content').fill('# Browser document\n\nCreated in the UI.');
   await page.getByLabel('Commit message').fill('Add browser document');
   await page.getByRole('button', { name: 'Save & commit', exact: true }).click();
@@ -59,7 +61,7 @@ test('shared dashboard, four worktrees, file-only updates and safe UI CRUD', asy
   await expect(page.locator('#detail')).toContainText('Created in the UI.');
   await page.locator('#edit-file').click();
   await page.getByLabel('File content').fill('# Updated in UI');
-  f.write('.command/docs/guide.md', '# Concurrent change');
+  f.write('docs/guide.md', '# Concurrent change');
   await page.getByRole('button', { name: 'Save & commit', exact: true }).click();
   await expect(page.locator('#editor-error')).toContainText('Conflict');
   expect(snapshot(f.project).documents.find(d => d.path.endsWith('ui.md'))?.text).toContain('Created in the UI');
@@ -75,7 +77,7 @@ test('shared dashboard, four worktrees, file-only updates and safe UI CRUD', asy
   await page.getByRole('button', { name: 'Delete file…', exact: true }).click();
   await expect(page.locator('.record-row').filter({ hasText: 'ui.md' })).toHaveCount(0);
 
-  f.write('.command/docs/guide.md', '# External Git edit\n\n<script>window.__xss = 1</script>\n<img src=x onerror="window.__xss = 2">\n');
+  f.write('docs/guide.md', '# External Git edit\n\n<script>window.__xss = 1</script>\n<img src=x onerror="window.__xss = 2">\n');
   await expect(page.locator('#detail')).toContainText('External Git edit', { timeout: 10_000 });
   expect(await page.evaluate(() => (window as unknown as { __xss?: number }).__xss)).toBeUndefined();
   await expect(page.locator('#detail img, #detail script')).toHaveCount(0);

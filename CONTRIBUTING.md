@@ -3,7 +3,7 @@
 The specification is experimental. Propose changes with a concrete use case, a
 schema/example change and its interoperability consequences. Keep application UI
 preferences separate from portable record semantics. No existing tool must adopt
-Command Center to implement the format.
+Alphabook to implement the format.
 
 Versioned draft specifications and schemas live under `spec/` and `schemas/`.
 Report implementation experience, especially from independent readers/writers and

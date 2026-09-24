@@ -8,7 +8,7 @@ const escape = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, char 
 const label = (status: string) => status.replaceAll('_', ' ');
 const pill = (status: string) => `<span class="pill ${escape(status)}">${escape(label(status))}</span>`;
 let projects: Registration[] = [], state: Overview | null = null;
-let projectId = localStorage.getItem('command.project') || '';
+let projectId = localStorage.getItem('alphabook.project') || '';
 const query = new URLSearchParams(location.search);
 let tab = ['tasks', 'graph', 'decisions', 'docs', 'artifacts', 'worktrees'].includes(query.get('tab') || '') ? query.get('tab')! : 'tasks';
 let selected = query.get('record') || '', filter = 'all', serial = 0, detailSerial = 0, refreshing = false;
@@ -36,7 +36,7 @@ async function loadProjects() {
   $('project').innerHTML = projects.length ? projects.map(p => `<option value="${p.id}">${escape(p.name)}</option>`).join('') : '<option value="">No projects registered</option>';
   $<HTMLSelectElement>('project').value = projectId;
   $('empty').hidden = Boolean(projectId); $('project-view').hidden = !projectId;
-  if (projectId) { localStorage.setItem('command.project', projectId); await refresh(true); }
+  if (projectId) { localStorage.setItem('alphabook.project', projectId); await refresh(true); }
 }
 async function refresh(force = false) {
   if (!projectId) return;
@@ -55,7 +55,7 @@ async function refresh(force = false) {
     $('project-path').textContent = projects.find(p => p.id === projectId)?.root || '';
     $('context').textContent = 'Snapshot unavailable';
     $('metrics').innerHTML = ''; $('diagnostics').innerHTML = ''; $('task-count').textContent = '';
-    $('view-note').textContent = 'This project needs a valid RPF 0.2 plan committed to its command branch. No planning checkout is required.';
+    $('view-note').textContent = 'This project needs a valid Alphabook Format 0.3 plan committed to its alphabook branch. No planning checkout is required.';
     $('activity-strip').innerHTML = '';
     $('content').innerHTML = '<div class="empty-state">This snapshot cannot be read. No cached task state is being shown.</div>';
     showError(error);
@@ -67,7 +67,7 @@ function render() {
   $('project-path').textContent = state.context.root;
   $('context').textContent = `${state.context.head.slice(0, 8)} · ${state.worktrees.length} code worktrees`;
   const dirtyPlanning = state.planningWorktrees.filter(t => t.dirty).length;
-  $('view-note').textContent = 'One shared plan, read directly from command. Branches and commits connect tasks to code; no branch switching needed.' + (dirtyPlanning ? ` ${dirtyPlanning} planning checkout(s) have uncommitted edits, not yet published here.` : '');
+  $('view-note').textContent = 'One shared plan, read directly from alphabook. Branches and commits connect tasks to code; no branch switching needed.' + (dirtyPlanning ? ` ${dirtyPlanning} planning checkout(s) have uncommitted edits, not yet published here.` : '');
   const active = state.worktrees.filter(t => t.tasks.some(task => ['in_progress', 'blocked', 'review'].includes(task.meta.status)));
   $('activity-strip').innerHTML = active.length ? `<section class="project-activity"><div class="activity-heading"><h2>Work in progress</h2><span class="hint">${active.length} worktrees · recorded task state, not agent presence</span></div><div class="activity-grid">${active.map(t => `<article class="activity-card"><span class="mono">${escape(t.branch || 'detached')}</span>${t.tasks.filter(task => ['in_progress', 'blocked', 'review'].includes(task.meta.status)).map(task => `<button class="activity-task" data-jump="${escape(task.meta.id)}"><span>${escape(task.meta.id)} · ${escape(task.meta.title)}</span>${pill(task.meta.status)}</button>`).join('')}</article>`).join('')}</div></section>` : '';
 
@@ -160,7 +160,7 @@ function graph() {
 }
 function renderWorktrees() {
   if (!state) return;
-  $('content').innerHTML = `<div class="tree-grid">${state.worktrees.map(tree => `<article class="panel tree-card"><div class="detail-head"><span class="eyebrow">CODE WORKTREE</span>${pill(tree.dirty === null ? 'unavailable' : tree.dirty ? 'uncommitted' : 'clean')}</div><h2>${escape(tree.branch || tree.head?.slice(0, 8) || 'Unborn')}</h2><p class="path mono">${escape(tree.root)}</p>${tree.tasks.map(task => `<button class="activity-task" data-jump="${escape(task.meta.id)}"><span>${escape(task.meta.id)}<br>${escape(task.meta.title)}</span>${pill(task.meta.status)}</button>`).join('') || '<p class="hint">No tasks linked to this branch. Add its name to a task’s branches field.</p>'}${tree.error ? `<p class="error">${escape(tree.error)}</p>` : ''}</article>`).join('') || empty('No local code worktrees. The shared plan is still available without one.')}</div><h2 class="branch-heading">Other code branches</h2><div class="tree-grid">${state.branches.filter(branch => !branch.checkoutIds.length).map(branch => `<article class="panel tree-card"><span class="eyebrow">NO LOCAL WORKTREE</span><h2>${escape(branch.name)}</h2>${branch.tasks.map(task => `<button class="activity-task" data-jump="${escape(task.meta.id)}"><span>${escape(task.meta.id)} · ${escape(task.meta.title)}</span>${pill(task.meta.status)}</button>`).join('') || '<p class="hint">No tasks linked.</p>'}</article>`).join('') || '<p class="hint">Every local code branch has a worktree.</p>'}</div><p class="view-note">Task state comes only from command. Code worktrees provide branch, HEAD and dirty state—not separate task databases.</p>`;
+  $('content').innerHTML = `<div class="tree-grid">${state.worktrees.map(tree => `<article class="panel tree-card"><div class="detail-head"><span class="eyebrow">CODE WORKTREE</span>${pill(tree.dirty === null ? 'unavailable' : tree.dirty ? 'uncommitted' : 'clean')}</div><h2>${escape(tree.branch || tree.head?.slice(0, 8) || 'Unborn')}</h2><p class="path mono">${escape(tree.root)}</p>${tree.tasks.map(task => `<button class="activity-task" data-jump="${escape(task.meta.id)}"><span>${escape(task.meta.id)}<br>${escape(task.meta.title)}</span>${pill(task.meta.status)}</button>`).join('') || '<p class="hint">No tasks linked to this branch. Add its name to a task’s branches field.</p>'}${tree.error ? `<p class="error">${escape(tree.error)}</p>` : ''}</article>`).join('') || empty('No local code worktrees. The shared plan is still available without one.')}</div><h2 class="branch-heading">Other code branches</h2><div class="tree-grid">${state.branches.filter(branch => !branch.checkoutIds.length).map(branch => `<article class="panel tree-card"><span class="eyebrow">NO LOCAL WORKTREE</span><h2>${escape(branch.name)}</h2>${branch.tasks.map(task => `<button class="activity-task" data-jump="${escape(task.meta.id)}"><span>${escape(task.meta.id)} · ${escape(task.meta.title)}</span>${pill(task.meta.status)}</button>`).join('') || '<p class="hint">No tasks linked.</p>'}</article>`).join('') || '<p class="hint">Every local code branch has a worktree.</p>'}</div><p class="view-note">Task state comes only from alphabook. Code worktrees provide branch, HEAD and dirty state—not separate task databases.</p>`;
 }
 
 function openEditor(create = false) {
@@ -169,7 +169,7 @@ function openEditor(create = false) {
   const file = [...state.documents, ...state.artifacts].find(row => row.path === selected);
   const id = `${tab === 'decisions' ? 'D' : 'T'}-${crypto.randomUUID()}`;
   const folder = tab === 'decisions' ? 'decisions' : tab === 'docs' ? 'docs' : tab === 'artifacts' ? 'artifacts' : 'tasks';
-  const path = create ? `.command/${folder}/${folder === 'tasks' || folder === 'decisions' ? id : 'new-document'}.md` : record?.path || file?.path;
+  const path = create ? `${folder}/${folder === 'tasks' || folder === 'decisions' ? id : 'new-document'}.md` : record?.path || file?.path;
   if (!path) return;
   const content = create ? folder === 'tasks' || folder === 'decisions' ? `---\nkind: ${folder === 'tasks' ? 'task' : 'decision'}\nid: ${id}\ntitle: New ${folder === 'tasks' ? 'task' : 'decision'}\nstatus: ${folder === 'tasks' ? 'planned' : 'proposed'}\n---\n\nDescribe the outcome and acceptance criteria.\n` : '# New document\n' : record?.content ?? file?.text ?? '';
   editorBase = { head: state.context.head, revision: create ? null : record?.revision || file!.revision, projectId };
@@ -183,12 +183,12 @@ function openEditor(create = false) {
 }
 async function saveEditor(remove = false) {
   if (!editorBase) return;
-  if (remove && !confirm('Delete this planning file in a new command commit? Git history retains the old content. Prefer cancelling completed/historical tasks.')) return;
+  if (remove && !confirm('Delete this planning file in a new alphabook commit? Git history retains the old content. Prefer cancelling completed/historical tasks.')) return;
   const buttons = document.querySelectorAll<HTMLButtonElement>('#editor-dialog button');
   buttons.forEach(button => button.disabled = true);
   try {
     await api(`/api/projects/${editorBase.projectId}/planning`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', 'x-command-write': '1' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'x-alphabook-write': '1' },
       body: JSON.stringify({ path: $<HTMLInputElement>('editor-path').value, content: remove ? null : $<HTMLTextAreaElement>('editor-content').value, expectedHead: editorBase.head, expectedRevision: editorBase.revision, message: $<HTMLInputElement>('editor-message').value }),
     });
     $<HTMLDialogElement>('editor-dialog').close(); await refresh(true);
@@ -205,17 +205,17 @@ $('register-close').onclick = () => $<HTMLDialogElement>('register-dialog').clos
 $('register-form').onsubmit = async event => {
   event.preventDefault(); const button = document.querySelector<HTMLButtonElement>('#register-form button[type="submit"]')!; button.disabled = true;
   try {
-    const result = await api<{ project: Registration }>('/api/projects', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-command-write': '1' }, body: JSON.stringify({ path: $<HTMLInputElement>('register-path').value.trim() }) });
+    const result = await api<{ project: Registration }>('/api/projects', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-alphabook-write': '1' }, body: JSON.stringify({ path: $<HTMLInputElement>('register-path').value.trim() }) });
     projectId = result.project.id; selected = ''; state = null;
     $<HTMLDialogElement>('register-dialog').close(); await loadProjects();
   } catch (error) { $('register-error').textContent = error instanceof Error ? error.message : String(error); $('register-error').hidden = false; }
   finally { button.disabled = false; }
 };
-$('project').onchange = async () => { projectId = $<HTMLSelectElement>('project').value; state = null; selected = ''; localStorage.setItem('command.project', projectId); await refresh(true); };
+$('project').onchange = async () => { projectId = $<HTMLSelectElement>('project').value; state = null; selected = ''; localStorage.setItem('alphabook.project', projectId); await refresh(true); };
 $('refresh').onclick = () => { void refresh(true); };
 $('unregister').onclick = async () => {
   if (!confirm('Remove this local registration? Repository files and Git history will not be changed.')) return;
-  try { await api(`/api/projects/${projectId}`, { method: 'DELETE', headers: { 'x-command-write': '1' } }); projectId = ''; state = null; await loadProjects(); } catch (error) { showError(error); }
+  try { await api(`/api/projects/${projectId}`, { method: 'DELETE', headers: { 'x-alphabook-write': '1' } }); projectId = ''; state = null; await loadProjects(); } catch (error) { showError(error); }
 };
 document.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(button => button.onclick = () => { tab = button.dataset.tab!; selected = ''; renderContent(); });
 $('content').addEventListener('change', event => { if ((event.target as HTMLElement).id === 'task-filter') { filter = (event.target as HTMLSelectElement).value; renderContent(); } });

@@ -4,7 +4,7 @@ export type ProjectWorktree = Worktree & { dirty: boolean | null; tasks: RecordF
 export type CodeBranch = { name: string; head: string; tasks: RecordFile[]; checkoutIds: string[] };
 export type Overview = Snapshot & { worktrees: ProjectWorktree[]; planningWorktrees: ProjectWorktree[]; branches: CodeBranch[]; warnings: string[] };
 
-/** One command-branch plan joined to every local code branch/worktree by explicit task links. */
+/** One alphabook-branch plan joined to every local code branch/worktree by explicit task links. */
 export function overview(project: Registration): Overview {
   const plan = snapshot(project);
   const warnings: string[] = [];

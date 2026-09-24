@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "command-center",
+      "name": "alphabook",
       "dependencies": {
         "@modelcontextprotocol/sdk": "1.30.1",
         "ajv": "8.20.0",

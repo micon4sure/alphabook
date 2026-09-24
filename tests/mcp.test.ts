@@ -5,21 +5,24 @@ import { join, resolve } from 'node:path';
 import { fixture, task } from './fixture';
 import { git, snapshot } from '../packages/core/index';
 const f = fixture(), context = { projectId: f.project.id };
-const client = new Client({ name: 'command-test-client', version: '0.2.0' });
-const transport = new StdioClientTransport({ command: process.execPath, args: [resolve('apps/mcp.ts')], env: { ...process.env, COMMAND_HOME: f.registry.home } as Record<string, string>, stderr: 'pipe' });
+const client = new Client({ name: 'alphabook-test-client', version: '0.3.0' });
+const transport = new StdioClientTransport({ command: process.execPath, args: [resolve('apps/mcp.ts')], env: { ...process.env, ALPHABOOK_HOME: f.registry.home } as Record<string, string>, stderr: 'pipe' });
 beforeAll(async () => { await client.connect(transport); });
 afterAll(async () => { await client.close(); f.cleanup(); });
 async function call(name: string, args: Record<string, unknown> = {}) {
   return await client.callTool({ name, arguments: args }) as { isError?: boolean; structuredContent?: Record<string, any>; content: { type: string; text?: string }[] };
 }
 test('real stdio discovery distinguishes read-only tools from planning mutations', async () => {
+  expect(client.getServerVersion()?.name).toBe('alphabook-planning');
   const result = await client.listTools();
   expect(result.tools).toHaveLength(17);
   expect(result.tools.filter(t => t.annotations?.readOnlyHint)).toHaveLength(11);
   expect(result.tools.find(t => t.name === 'delete_planning_file')?.annotations?.destructiveHint).toBe(true);
   expect((await call('list_projects')).structuredContent?.projects[0].id).toBe(f.project.id);
   expect((await call('register_project', { path: f.root })).structuredContent?.project.id).toBe(f.project.id);
-  expect((await client.readResource({ uri: 'command://projects' })).contents[0].mimeType).toBe('application/json');
+  expect((await client.readResource({ uri: 'alphabook://projects' })).contents[0].mimeType).toBe('application/json');
+  expect((await client.listResources()).resources.map(resource => resource.uri)).toEqual(['alphabook://projects']);
+  await expect(client.readResource({ uri: 'command://projects' })).rejects.toThrow();
 });
 test('global plan queries need no checkout ID or running web server', async () => {
   expect((await call('list_tasks', context)).structuredContent?.tasks).toHaveLength(2);
@@ -27,7 +30,7 @@ test('global plan queries need no checkout ID or running web server', async () =
   expect((await call('read_task', { ...context, taskId: 'T-001' })).structuredContent?.task.content).toContain('Task description');
   expect((await call('list_decisions', context)).structuredContent?.decisions).toHaveLength(1);
   expect((await call('read_decision', { ...context, decisionId: 'D-001' })).structuredContent?.decision.body).toContain('Decision body');
-  expect((await call('read_document', { ...context, path: '.command/docs/guide.md' })).structuredContent?.document.text).toContain('Ordinary Git');
+  expect((await call('read_document', { ...context, path: 'docs/guide.md' })).structuredContent?.document.text).toContain('Ordinary Git');
   expect((await call('list_documents', context)).structuredContent?.artifacts).toHaveLength(1);
   expect((await call('list_task_commits', { ...context, taskId: 'T-001' })).structuredContent?.commits).toHaveLength(1);
   expect((await call('validate_project', context)).structuredContent?.valid).toBe(true);
@@ -44,7 +47,7 @@ test('MCP task update is committed centrally and immediately visible across work
   expect(git(f.root, ['branch', '--show-current']).trim()).toBe('main');
 });
 test('MCP create, read, update and delete document use one shared Git writer', async () => {
-  const path = '.command/docs/mcp.md';
+  const path = 'docs/mcp.md';
   const create = await call('write_document', { ...context, path, content: '# First', expectedHead: snapshot(f.project).context.head, expectedRevision: null, message: 'Add guide' });
   expect(create.isError).not.toBe(true);
   const row = (await call('read_document', { ...context, path })).structuredContent!;

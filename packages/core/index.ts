@@ -6,17 +6,17 @@ import { spawnSync } from 'node:child_process';
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 import { isAlias, isMap, isScalar, parseDocument, visit } from 'yaml';
-import schema from '../../schemas/0.2/schema.json' with { type: 'json' };
+import schema from '../../schemas/0.3/schema.json' with { type: 'json' };
 
-export type Manifest = { format: 'repo-project'; format_version: '0.2'; id: string; name: string; planning_branch: 'command'; code_branch?: string };
+export type Manifest = { format: 'alphabook'; format_version: '0.3'; id: string; name: string; planning_branch: 'alphabook'; code_branch?: string };
 export type TaskStatus = 'planned' | 'in_progress' | 'blocked' | 'review' | 'done' | 'cancelled';
 export type Metadata = { kind: 'task' | 'decision'; id: string; title: string; status: string; depends_on?: string[]; decisions?: string[]; paths?: string[]; artifacts?: string[]; branches?: string[]; commits?: string[]; assignee?: string; supersedes?: string; extensions?: Record<string, unknown> };
 export type RecordFile = { meta: Metadata; body: string; content: string; path: string; revision: string; ready?: boolean };
 export type DocumentFile = { path: string; revision: string; text: string | null; size: number };
-export type Registration = { id: string; root: string; commonDir: string; projectId: string; name: string; planningBranch: 'command' };
+export type Registration = { id: string; root: string; commonDir: string; projectId: string; name: string; planningBranch: 'alphabook' };
 export type Worktree = { id: string; root: string; head: string | null; branch: string | null; locked: boolean; prunable: boolean; available: boolean; role: 'planning' | 'code' };
 export type Snapshot = {
-  project: Manifest; context: { source: 'command'; root: string; branch: 'command'; head: string; dirty: false };
+  project: Manifest; context: { source: 'alphabook'; root: string; branch: 'alphabook'; head: string; dirty: false };
   tasks: RecordFile[]; decisions: RecordFile[]; documents: DocumentFile[]; artifacts: DocumentFile[]; errors: string[]; revision: string;
 };
 const LIMIT = 2 * 1024 * 1024;
@@ -63,7 +63,7 @@ export function manifest(text: string, root: string): Manifest {
   check(data, 'project');
   if (data.code_branch) {
     checkBranch(root, data.code_branch);
-    if (data.code_branch === 'command') throw new Error('code_branch cannot be the planning branch');
+    if (data.code_branch === 'alphabook') throw new Error('code_branch cannot be the planning branch');
   }
   return data;
 }
@@ -102,16 +102,16 @@ function localBytes(root: string, path: string): Buffer {
 }
 function utf8(bytes: Buffer): string { return new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes); }
 
-export function commandHome() { return resolve(process.env.COMMAND_HOME || join(homedir(), '.local/share/command')); }
+export function alphabookHome() { return resolve(process.env.ALPHABOOK_HOME || join(homedir(), '.local/share/alphabook')); }
+export function isPlanningPath(path: string) { return path === 'project.yaml' || /^(tasks|decisions|docs|artifacts)\/.+/.test(path); }
 export class Registry {
-  constructor(public home = commandHome()) {}
+  constructor(public home = alphabookHome()) {}
   list(): Registration[] {
     const path = join(this.home, 'projects.json');
     if (!existsSync(path)) return [];
     const rows = JSON.parse(readFileSync(path, 'utf8'));
     if (!Array.isArray(rows) || rows.some(row => !row || ['id', 'root', 'commonDir', 'projectId', 'name'].some(key => typeof row[key] !== 'string'))) throw new Error('Invalid local project registry');
-    // Keep old registrations; never silently migrate their repositories.
-    return rows.map(({ integrationBranch: _legacy, ...row }) => ({ ...row, planningBranch: 'command' }));
+    return rows;
   }
   get(id: string): Registration {
     const result = this.list().find(item => item.id === id);
@@ -119,15 +119,15 @@ export class Registry {
     return result;
   }
   register(path: string): Registration {
-    if (!isAbsolute(path)) throw new Error('Use an absolute project or .command directory path');
+    if (!isAbsolute(path)) throw new Error('Use an absolute repository directory path');
     const target = realpathSync(path);
     const root = realpathSync(git(target, ['rev-parse', '--is-bare-repository']).trim() === 'true' ? target : git(target, ['rev-parse', '--show-toplevel']).trim());
     const commonDir = realpathSync(resolve(root, git(root, ['rev-parse', '--git-common-dir']).trim()));
-    const oid = commandHead(commonDir);
-    const project = manifest(git(commonDir, ['show', `${oid}:.command/project.yaml`]), commonDir);
-    const item: Registration = { id: localId(commonDir), root, commonDir, projectId: project.id, name: project.name, planningBranch: 'command' };
+    const oid = planningHead(commonDir);
+    const project = manifest(git(commonDir, ['show', `${oid}:project.yaml`]), commonDir);
+    const item: Registration = { id: localId(commonDir), root, commonDir, projectId: project.id, name: project.name, planningBranch: 'alphabook' };
     const state = snapshot(item);
-    if (state.errors.length) throw new Error(`Invalid command plan: ${state.errors.join('; ')}`);
+    if (state.errors.length) throw new Error(`Invalid alphabook plan: ${state.errors.join('; ')}`);
     this.change(rows => [...rows.filter(row => row.id !== item.id), item]);
     return item;
   }
@@ -162,20 +162,22 @@ export function worktrees(project: Registration): Worktree[] {
 }
 
 export function isPlanningRef(root: string, head: string | null, branch: string | null): boolean {
-  if (branch === 'command') return true;
+  if (branch === 'alphabook') return true;
   if (!head || /^0+$/.test(head)) return false;
-  return gitOrNull(root, ['ls-tree', '--name-only', head]) === '.command';
+  const text = gitOrNull(root, ['show', `${head}:project.yaml`]);
+  if (!text) return false;
+  try { manifest(text, root); return true; } catch { return false; }
 }
-export function commandHead(root: string): string {
-  const oid = gitOrNull(root, ['rev-parse', '--verify', 'refs/heads/command^{commit}']);
-  if (!oid) throw new Error('No local command branch. Initialize planning, or after cloning create command from fetched origin/command. Existing .command folders are not migrated automatically.');
+export function planningHead(root: string): string {
+  const oid = gitOrNull(root, ['rev-parse', '--verify', 'refs/heads/alphabook^{commit}']);
+  if (!oid) throw new Error('No local alphabook branch. Initialize planning, or after cloning create alphabook from fetched origin/alphabook. Older planning formats require an explicit migration.');
   return oid;
 }
 
 export function snapshot(project: Registration, candidate?: string): Snapshot {
   const root = project.commonDir;
   if (candidate && !/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(candidate)) throw new Error('Candidate snapshot must be an exact object ID');
-  const head = candidate || commandHead(root);
+  const head = candidate || planningHead(root);
   const errors: string[] = [];
   const modes = new Map<string, string>();
   {
@@ -199,17 +201,18 @@ export function snapshot(project: Registration, candidate?: string): Snapshot {
     return result;
   };
   for (const [path, mode] of modes) {
-    if (!path.startsWith('.command/')) errors.push(`command branch contains non-planning file: ${path}`);
+    if (!isPlanningPath(path)) errors.push(`alphabook branch contains non-planning file: ${path}`);
     if (!mode.startsWith('100')) errors.push(`Unsupported non-regular planning file: ${path}`);
   }
   const roots = git(root, ['rev-list', '--max-parents=0', head]).trim().split('\n');
-  if (roots.length !== 1 || git(root, ['ls-tree', '--name-only', roots[0]]).trim() !== '.command') errors.push('command must have an independent planning-only root history');
-  const readManifest = manifest(utf8(bytes('.command/project.yaml')), root);
+  if (roots.length !== 1) errors.push('alphabook must have one independent root history');
+  const readManifest = manifest(utf8(bytes('project.yaml')), root);
+  if (readManifest.code_branch && gitOrNull(root, ['merge-base', head, `refs/heads/${readManifest.code_branch}`])) errors.push('alphabook history must be independent of the code branch');
   if (readManifest.id !== project.projectId) throw new Error('Snapshot project identity differs from registration');
   const records = (kind: 'task' | 'decision'): RecordFile[] => {
     const result: RecordFile[] = [];
     try {
-      for (const path of list(`.command/${kind}s`).filter(path => path.endsWith('.md'))) {
+      for (const path of list(`${kind}s`).filter(path => path.endsWith('.md'))) {
         try { result.push(parseRecord(utf8(bytes(path)), path, kind)); }
         catch (error) { errors.push(`${path}: ${message(error)}`); }
       }
@@ -223,7 +226,7 @@ export function snapshot(project: Registration, candidate?: string): Snapshot {
     ids.add(record.meta.id);
     for (const branch of record.meta.branches || []) try {
       checkBranch(root, branch);
-      if (branch === 'command') throw new Error('task branches refer to code, not command');
+      if (branch === 'alphabook') throw new Error('task branches refer to code, not alphabook');
     } catch (error) { errors.push(`${record.meta.id}: ${message(error)}`); }
     for (const path of [...record.meta.paths || [], ...record.meta.artifacts || []]) {
       try {
@@ -231,7 +234,7 @@ export function snapshot(project: Registration, candidate?: string): Snapshot {
       } catch (error) { errors.push(`${record.meta.id}: ${message(error)}`); }
     }
     for (const path of record.meta.artifacts || []) try {
-      if (!path.startsWith('.command/artifacts/') || !modes.get(path)?.startsWith('100')) throw new Error('artifact must be a regular file under .command/artifacts');
+      if (!path.startsWith('artifacts/') || !modes.get(path)?.startsWith('100')) throw new Error('artifact must be a regular file under artifacts');
     } catch (error) { errors.push(`${record.meta.id}: missing/invalid artifact ${path}: ${message(error)}`); }
   }
   const taskMap = new Map(tasks.map(t => [t.meta.id, t]));
@@ -270,8 +273,8 @@ export function snapshot(project: Registration, candidate?: string): Snapshot {
   };
   const data = {
     project: readManifest,
-    context: { source: 'command' as const, root: project.root, branch: 'command' as const, head, dirty: false as const },
-    tasks, decisions, documents: documents('.command/docs'), artifacts: documents('.command/artifacts'), errors,
+    context: { source: 'alphabook' as const, root: project.root, branch: 'alphabook' as const, head, dirty: false as const },
+    tasks, decisions, documents: documents('docs'), artifacts: documents('artifacts'), errors,
   };
   if (errors.length) for (const task of tasks) task.ready = false;
   return { ...data, revision: digest(JSON.stringify(data)) };

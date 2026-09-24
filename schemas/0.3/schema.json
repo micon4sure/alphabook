@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:repo-project-format:0.2",
-  "title": "Repository Project Format experimental draft 0.2",
+  "$id": "urn:alphabook-format:0.3",
+  "title": "Alphabook Format — experimental draft 0.3",
   "oneOf": [
     {
       "$ref": "#/$defs/project"
@@ -60,10 +60,10 @@
       "additionalProperties": false,
       "properties": {
         "format": {
-          "const": "repo-project"
+          "const": "alphabook"
         },
         "format_version": {
-          "const": "0.2"
+          "const": "0.3"
         },
         "id": {
           "type": "string",
@@ -76,7 +76,7 @@
           "$ref": "#/$defs/extensions"
         },
         "planning_branch": {
-          "const": "command"
+          "const": "alphabook"
         },
         "code_branch": {
           "$ref": "#/$defs/text"

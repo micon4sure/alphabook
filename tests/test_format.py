@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class FormatTests(unittest.TestCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(prefix="command-format-test-")
+        self.temp = tempfile.TemporaryDirectory(prefix="alphabook-format-test-")
         self.base = Path(self.temp.name)
         self.project = self.base / "project"
         shutil.copytree(ROOT / "examples/minimal", self.project)
@@ -31,7 +31,7 @@ class FormatTests(unittest.TestCase):
 
     def test_example_and_self_tracking(self):
         self.assertTrue(validate(self.project)["valid"])
-        self.assertEqual(json.loads((ROOT / "schemas/0.2/schema.json").read_text())["$id"], "urn:repo-project-format:0.2")
+        self.assertEqual(json.loads((ROOT / "schemas/0.3/schema.json").read_text())["$id"], "urn:alphabook-format:0.3")
 
     def test_yaml_core_scalars(self):
         value = metadata("title: on\ndate: 2026-09-24\nnumber: 012\noctal: 0o12\nexponent: 1e2\nyes: true\n")
@@ -43,35 +43,35 @@ class FormatTests(unittest.TestCase):
                 metadata(text)
 
     def test_unsupported_version(self):
-        self.edit(".command/project.yaml", '"0.2"', '"9.0"')
-        self.assert_invalid("0.2")
+        self.edit("project.yaml", '"0.3"', '"9.0"')
+        self.assert_invalid("0.3")
 
     def test_filename_identity(self):
-        self.edit(".command/tasks/T-002.md", "id: T-002", "id: T-999")
+        self.edit("tasks/T-002.md", "id: T-002", "id: T-999")
         self.assert_invalid("filename stem")
 
     def test_missing_dependency(self):
-        self.edit(".command/tasks/T-002.md", "depends_on: [T-001]", "depends_on: [T-999]")
+        self.edit("tasks/T-002.md", "depends_on: [T-001]", "depends_on: [T-999]")
         self.assert_invalid("missing depends_on")
 
     def test_dependency_cycle(self):
-        self.edit(".command/tasks/T-001.md", "status: done", "status: done\ndepends_on: [T-002]")
+        self.edit("tasks/T-001.md", "status: done", "status: done\ndepends_on: [T-002]")
         self.assert_invalid("cycle")
 
     def test_missing_decision(self):
-        self.edit(".command/tasks/T-002.md", "decisions: [D-001]", "decisions: [D-999]")
+        self.edit("tasks/T-002.md", "decisions: [D-001]", "decisions: [D-999]")
         self.assert_invalid("missing decision")
 
     def test_supersession_cycle(self):
-        self.edit(".command/decisions/D-001.md", "status: accepted", "status: accepted\nsupersedes: D-001")
+        self.edit("decisions/D-001.md", "status: accepted", "status: accepted\nsupersedes: D-001")
         self.assert_invalid("cycle")
 
     def test_unknown_field(self):
-        self.edit(".command/tasks/T-002.md", "status: planned", "status: planned\nunknown: value")
+        self.edit("tasks/T-002.md", "status: planned", "status: planned\nunknown: value")
         self.assert_invalid("Additional properties")
 
     def test_paths(self):
-        path = self.project / ".command/tasks/T-002.md"
+        path = self.project / "tasks/T-002.md"
         original = path.read_text()
         for invalid in ["../outside", "/tmp/outside", "a/../b", ".git/config", "a//b", "a/", "C:/windows", "a\\b"]:
             with self.subTest(path=invalid):
@@ -81,13 +81,13 @@ class FormatTests(unittest.TestCase):
         self.assertTrue(validate(self.project)["valid"])
 
     def test_missing_artifact(self):
-        self.edit(".command/tasks/T-002.md", "status: planned", "status: planned\nartifacts: [missing.png]")
+        self.edit("tasks/T-002.md", "status: planned", "status: planned\nartifacts: [missing.png]")
         self.assert_invalid("missing artifact")
 
     def test_symlink_escape(self):
         (self.base / "outside.md").write_text("private")
         (self.project / "outside.md").symlink_to(self.base / "outside.md")
-        self.edit(".command/tasks/T-002.md", "paths: [src/browser]", "paths: [outside.md]")
+        self.edit("tasks/T-002.md", "paths: [src/browser]", "paths: [outside.md]")
         self.assert_invalid("escapes")
 
     def test_worktree_edits_and_integration_without_mcp(self):
@@ -97,8 +97,8 @@ class FormatTests(unittest.TestCase):
                 cwd=cwd, input=text, text=True, capture_output=True, check=True,
             ).stdout
 
-        git(self.project, "init", "-b", "command")
-        git(self.project, "add", ".command")
+        git(self.project, "init", "-b", "alphabook")
+        git(self.project, "add", "project.yaml", "tasks", "decisions", "docs")
         git(self.project, "commit", "-m", "Initial plan")
         git(self.project, "switch", "--orphan", "main")
         (self.project / "README.md").write_text("Source code")
@@ -107,28 +107,28 @@ class FormatTests(unittest.TestCase):
         worktree = self.base / "task-worktree"
         git(self.project, "worktree", "add", "-b", "task/T-002", str(worktree))
         self.assertTrue((worktree / ".git").is_file())
-        self.assertFalse((worktree / ".command").exists())
+        self.assertFalse((worktree / ".alphabook").exists())
         planning = self.base / "optional-planning-checkout"
-        git(self.project, "worktree", "add", str(planning), "command")
-        task = planning / ".command/tasks/T-002.md"
+        git(self.project, "worktree", "add", str(planning), "alphabook")
+        task = planning / "tasks/T-002.md"
         task.write_text(task.read_text().replace("status: planned", "status: in_progress\nassignee: agent-17\nbranches: [task/T-002]"))
         self.assertTrue(validate(planning)["valid"])
-        git(planning, "add", ".command/tasks/T-002.md")
+        git(planning, "add", "tasks/T-002.md")
         git(planning, "commit", "-m", "Start browser task\n\nTask: T-002")
         (worktree / "src").mkdir()
         (worktree / "src/browser.txt").write_text("fixture implementation")
         git(worktree, "add", "src/browser.txt")
         git(worktree, "commit", "-m", "Finish browser task\n\nTask: T-002")
-        self.assertIn("status: in_progress", git(worktree, "show", "command:.command/tasks/T-002.md"))
+        self.assertIn("status: in_progress", git(worktree, "show", "alphabook:tasks/T-002.md"))
         self.assertEqual(git(worktree, "interpret-trailers", "--parse", text=git(worktree, "log", "-1", "--format=%B")).strip(), "Task: T-002")
         git(self.project, "merge", "--ff-only", "task/T-002")
         code_commit = git(worktree, "rev-parse", "HEAD").strip()
         task.write_text(task.read_text().replace("status: in_progress", f"status: done\ncommits: [{code_commit}]"))
-        git(planning, "add", ".command/tasks/T-002.md")
+        git(planning, "add", "tasks/T-002.md")
         git(planning, "commit", "-m", "Record verified completion\n\nTask: T-002")
         self.assertEqual(read_record(task)[0]["status"], "done")
         self.assertTrue((self.project / "src/browser.txt").is_file())
-        self.assertFalse((self.project / ".command").exists())
+        self.assertFalse((self.project / ".alphabook").exists())
         self.assertTrue(validate(planning)["valid"])
 
 

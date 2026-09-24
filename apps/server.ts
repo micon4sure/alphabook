@@ -21,13 +21,13 @@ export async function createServer(options: { port?: number; home?: string } = {
     ['/style.css', { body: await Bun.file(webRoot + 'style.css').text(), type: 'text/css; charset=utf-8' }],
   ]);
   const server = Bun.serve({
-    hostname: '127.0.0.1', port: options.port ?? Number(process.env.COMMAND_PORT || 4320), maxRequestBodySize: 3 * 1024 * 1024,
+    hostname: '127.0.0.1', port: options.port ?? Number(process.env.ALPHABOOK_PORT || 4320), maxRequestBodySize: 3 * 1024 * 1024,
     async fetch(request) {
       const url = new URL(request.url);
       const hosts = [`127.0.0.1:${server.port}`, `localhost:${server.port}`];
       const origins = hosts.map(host => `http://${host}`);
       if (!hosts.includes(request.headers.get('host') || '') || request.headers.get('sec-fetch-site') === 'cross-site' || request.headers.has('origin') && !origins.includes(request.headers.get('origin')!)) return json({ error: 'Local same-origin access only' }, 403);
-      if (!['GET', 'HEAD'].includes(request.method) && request.headers.get('x-command-write') !== '1') return json({ error: 'Missing explicit local write header' }, 403);
+      if (!['GET', 'HEAD'].includes(request.method) && request.headers.get('x-alphabook-write') !== '1') return json({ error: 'Missing explicit local write header' }, 403);
       try {
         if (url.pathname === '/api/projects') {
           if (request.method === 'GET') return json({ projects: registry.list() });
@@ -70,6 +70,6 @@ export async function createServer(options: { port?: number; home?: string } = {
 
 if (import.meta.main) {
   const server = await createServer();
-  console.log(`Command Center: http://127.0.0.1:${server.port}`);
+  console.log(`Alphabook: http://127.0.0.1:${server.port}`);
   console.log('Local file-first planning viewer. MCP queries run separately with bun run mcp.');
 }

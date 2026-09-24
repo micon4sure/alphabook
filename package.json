@@ -1,12 +1,12 @@
 {
-  "name": "command-center",
-  "version": "0.2.0",
+  "name": "alphabook",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "scripts": {
     "start": "bun apps/server.ts",
     "mcp": "bun apps/mcp.ts",
-    "command": "bun apps/cli.ts",
+    "alphabook": "bun apps/cli.ts",
     "test": "bun test tests/core.test.ts tests/server.test.ts tests/mcp.test.ts tests/primer.test.ts",
     "typecheck": "tsc --noEmit",
     "test:browser": "playwright test"
