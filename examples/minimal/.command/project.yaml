@@ -1,0 +1,5 @@
+format: repo-project
+format_version: "0.1"
+id: "b556899e-eb59-4e98-89c4-157e62fddf1e"
+name: Example project
+integration_branch: main

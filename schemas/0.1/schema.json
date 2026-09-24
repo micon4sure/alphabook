@@ -1,0 +1,171 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:repo-project-format:0.1",
+  "title": "Repository Project Format experimental draft 0.1",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/project"
+    },
+    {
+      "$ref": "#/$defs/task"
+    },
+    {
+      "$ref": "#/$defs/decision"
+    }
+  ],
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*[:\\\\\\u0000-\\u001f])(?!.*(?:^|/)(?:\\.\\.?|\\.git)(?:/|$))(?!.*//)(?!.*/$).+$"
+    },
+    "ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/id"
+      }
+    },
+    "paths": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/path"
+      }
+    },
+    "extensions": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9-]*(?:\\.[a-z0-9-]+)+$"
+      },
+      "additionalProperties": true
+    },
+    "project": {
+      "type": "object",
+      "required": [
+        "format",
+        "format_version",
+        "id",
+        "name",
+        "integration_branch"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "const": "repo-project"
+        },
+        "format_version": {
+          "const": "0.1"
+        },
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "$ref": "#/$defs/text"
+        },
+        "integration_branch": {
+          "type": "string",
+          "minLength": 1
+        },
+        "extensions": {
+          "$ref": "#/$defs/extensions"
+        }
+      }
+    },
+    "task": {
+      "type": "object",
+      "required": [
+        "kind",
+        "id",
+        "title",
+        "status"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "task"
+        },
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "title": {
+          "$ref": "#/$defs/text"
+        },
+        "status": {
+          "enum": [
+            "planned",
+            "in_progress",
+            "blocked",
+            "done",
+            "cancelled"
+          ]
+        },
+        "depends_on": {
+          "$ref": "#/$defs/ids"
+        },
+        "decisions": {
+          "$ref": "#/$defs/ids"
+        },
+        "paths": {
+          "$ref": "#/$defs/paths"
+        },
+        "artifacts": {
+          "$ref": "#/$defs/paths"
+        },
+        "extensions": {
+          "$ref": "#/$defs/extensions"
+        },
+        "assignee": {
+          "$ref": "#/$defs/text"
+        }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "required": [
+        "kind",
+        "id",
+        "title",
+        "status"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "decision"
+        },
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "title": {
+          "$ref": "#/$defs/text"
+        },
+        "status": {
+          "enum": [
+            "proposed",
+            "accepted",
+            "superseded",
+            "rejected"
+          ]
+        },
+        "supersedes": {
+          "$ref": "#/$defs/id"
+        },
+        "paths": {
+          "$ref": "#/$defs/paths"
+        },
+        "extensions": {
+          "$ref": "#/$defs/extensions"
+        }
+      }
+    }
+  }
+}
