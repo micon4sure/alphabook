@@ -3,7 +3,7 @@
 A new local Command Center for planning and tracking projects in their own Git
 repositories. This repository currently contains the first **experimental format
 draft**, schemas, fixtures, validators, a shared TypeScript file/Git reader and a
-working local web application. The optional MCP query adapter is next.
+working local web application and an optional read-only MCP query adapter.
 
 The working name **Repository Project Format (RPF)** is provisional. The goal is
 an openly implementable format that other tools can read and write. This is a
@@ -81,13 +81,44 @@ systemctl --user stop command-center-preview
 
 This service is separate from the old Command Center on ports 4310/5173.
 
+## Optional MCP service
+
+Run `bun run mcp`, or configure a stdio MCP client to launch the entrypoint:
+
+```json
+{
+  "mcpServers": {
+    "command-planning": {
+      "command": "bun",
+      "args": ["/absolute/path/to/command/apps/mcp.ts"]
+    }
+  }
+}
+```
+
+Adapt the enclosing configuration key to your client. If the client does not
+inherit your shell's PATH, replace `bun` with the absolute result of `command -v
+bun`. Use the same `COMMAND_HOME` environment value as the web app if you override
+the registry location. The client starts the stdio process; no HTTP MCP endpoint
+or separately running web server is needed. No client settings are modified by
+installing Command.
+
+Start with `list_projects`, then `list_worktrees`. Pass the returned local
+`projectId`, `checkoutId` and explicit `source` (`checkout` or `accepted`) to
+`list_tasks`, `read_task`, `read_project`, decision/document queries or validation.
+`list_tasks` defaults to open tasks; `filter: "ready"` checks dependencies.
+
+All 11 current tools are read-only. Planning edits and commits use ordinary file
+and Git tools for now; MCP mutation tools are a documented future extension.
+See [the tool contract](spec/mcp.md).
+
 ## Validate the draft fixtures
 
 The shared application core can be verified with Bun 1.4:
 
 ```sh
 bun install --frozen-lockfile
-bun test tests/core.test.ts
+bun test tests/core.test.ts tests/server.test.ts tests/mcp.test.ts
 bun run typecheck
 bun run test:browser
 ```
@@ -113,6 +144,14 @@ The validator checks the current files, schema and references. It does not chang
 files, assign work, implement Git integration or run an MCP server. A directory
 with no valid manifest is reported as unsupported; existing legacy `.command`
 formats must be explicitly migrated later.
+
+The application reader currently handles local checkouts, files up to 2 MiB and
+folder scans up to 5000 files. Accepted snapshots do not follow Git symlinks.
+Large/binary artifacts should be kept in appropriate external storage or Git LFS;
+the viewer is not an artifact hosting service. Relative Markdown links and images
+are not followed in previews; repository contents cannot load scripts or remote
+images. Git operations have a 10-second timeout. These are implementation limits,
+not requirements of the portable format.
 
 ## Towards a useful public format
 
