@@ -108,7 +108,7 @@ The old Command Center on ports 4310/5173 is separate and untouched.
 
 ```sh
 bun run typecheck
-bun test tests/core.test.ts tests/server.test.ts tests/mcp.test.ts
+bun test tests/core.test.ts tests/server.test.ts tests/mcp.test.ts tests/primer.test.ts
 bun run test:browser
 python3 -m unittest discover -s tests -v
 python3 tools/validate.py examples/minimal
