@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="dark"><title>Alphabook</title>
+  <meta name="description" content="Minimalistic, accessible, machine-readable project planning. Keep tasks, decisions, documentation and artifacts in Git.">
   <link rel="icon" type="image/svg+xml" href="/logo.svg">
   <link rel="stylesheet" href="/style.css"><script type="module" src="/app.js"></script>
 </head>
@@ -17,12 +18,12 @@
     <section id="empty" class="welcome">
       <span class="eyebrow">YOUR REPOSITORY. YOUR PLAN.</span>
       <h1>A clear view of the work.</h1>
-      <p>One shared plan on your repository's <code>alphabook</code> branch.<br>Register a project to see its tasks and all code worktrees together.</p>
+      <p>Minimalistic, accessible, machine-readable project planning.<br>One shared plan in Git, for people and agents. Register a project to get started.</p>
       <button id="empty-register" class="primary">Register your first project <span>↗</span></button>
       <div class="principles"><span>01 &nbsp; Files are the source of truth</span><span>02 &nbsp; Git keeps the history</span><span>03 &nbsp; Worktrees keep work separate</span></div>
     </section>
     <div id="project-view" hidden>
-      <section class="project-heading"><div><span class="eyebrow">PROJECT WORKSPACE <span class="draft">Alphabook Format 0.3 · EXPERIMENTAL</span></span><h1 id="project-name"></h1><p id="project-path" class="mono path"></p></div><button id="unregister" class="subtle">Unregister</button></section>
+      <section class="project-heading"><div><span class="eyebrow">PROJECT WORKSPACE <span class="format-version">Alphabook Format 1.0</span></span><h1 id="project-name"></h1><p id="project-path" class="mono path"></p></div><button id="unregister" class="subtle">Unregister</button></section>
       <div class="context-bar"><div><span class="eyebrow">SHARED PLAN</span> <code>alphabook</code> <span class="hint">· All code branches and worktrees</span></div><div class="context-status"><span id="context"></span><button id="refresh" aria-label="Refresh project">↻ Refresh</button></div></div>
       <p id="view-note" class="view-note"></p>
       <div id="activity-strip"></div>
@@ -36,7 +37,7 @@
     <p id="error" class="error" role="alert" hidden></p>
     <footer><span>ALPHABOOK BY <a href="https://techtile.media" target="_blank" rel="noopener noreferrer">TECHTILE</a></span><span id="sync-note">Local files · Ordinary Git · Optional MCP</span></footer>
   </main>
-  <dialog id="register-dialog"><form id="register-form"><div class="dialog-heading"><span class="eyebrow">CONNECT A REPOSITORY</span><button type="button" id="register-close" class="subtle" aria-label="Close registration">✕</button></div><h2>Register a project</h2><p>Choose a Git repository with an Alphabook Format 0.3 plan on its <code>alphabook</code> branch. No planning checkout is needed.</p><label for="register-path">Absolute project directory</label><input id="register-path" name="path" placeholder="/path/to/your/project" required autocomplete="off"><p class="hint">Registration stays on this machine. Project files are not copied, changed or migrated.</p><p id="register-error" class="error" role="alert" hidden></p><button type="submit" class="primary">Register project</button></form></dialog>
+  <dialog id="register-dialog"><form id="register-form"><div class="dialog-heading"><span class="eyebrow">CONNECT A REPOSITORY</span><button type="button" id="register-close" class="subtle" aria-label="Close registration">✕</button></div><h2>Register a project</h2><p>Choose a Git repository with an Alphabook Format 1.0 plan on its <code>alphabook</code> branch. No planning checkout is needed.</p><label for="register-path">Absolute project directory</label><input id="register-path" name="path" placeholder="/path/to/your/project" required autocomplete="off"><p class="hint">Registration stays on this machine. Project files are not copied or changed.</p><p id="register-error" class="error" role="alert" hidden></p><button type="submit" class="primary">Register project</button></form></dialog>
   <dialog id="editor-dialog"><form id="editor-form"><div class="dialog-heading"><span class="eyebrow">PLANNING FILE / ALPHABOOK BRANCH</span><button type="button" id="editor-close" class="subtle" aria-label="Close editor">✕</button></div><h2 id="editor-title">Edit planning file</h2><label for="editor-path">Repository-relative planning path</label><input id="editor-path" required autocomplete="off"><label for="editor-content">File content (YAML frontmatter + Markdown for records)</label><textarea id="editor-content" rows="16" required></textarea><label for="editor-message">Commit message</label><input id="editor-message" required maxlength="200"><p class="hint">Saved as one commit on alphabook. Code files and the code index are untouched. Concurrent changes are checked before publishing.</p><p id="editor-error" class="error" role="alert" hidden></p><div class="editor-actions"><button type="button" id="editor-delete">Delete file…</button><button type="submit" class="primary">Save & commit</button></div></form></dialog>
 </body>
 </html>

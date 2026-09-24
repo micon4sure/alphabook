@@ -1,4 +1,4 @@
-# Optional Alphabook MCP interface — draft 0.3
+# Alphabook MCP interface 1.0
 
 MCP is a convenience interface to the same Git reader/writer used by the UI and
 CLI. It is not a database, execution framework, sync service or requirement for
@@ -26,7 +26,7 @@ to 100, allow 1–500, and disclose truncation. `alphabook://projects` is a JSON
 
 - `initialize_project`: create an independent alphabook root and register a project;
   refuses to replace an existing alphabook branch.
-- `register_project`: register an existing Alphabook Format 0.3 alphabook branch, without migration.
+- `register_project`: register an existing Alphabook planning branch without changing repository files.
 - `write_task`, `write_decision`: create/replace complete frontmatter + Markdown.
 - `write_document`: create/replace a UTF-8 doc or artifact.
 - `delete_planning_file`: remove a record/document/artifact in a recoverable Git

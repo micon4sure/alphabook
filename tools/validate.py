@@ -1,4 +1,4 @@
-"""Read-only reference validator for the experimental repository project format."""
+"""Read-only reference validator for Alphabook Format 1.0."""
 import argparse
 import json
 import re
@@ -9,7 +9,7 @@ from pathlib import Path
 import yaml
 from jsonschema import Draft202012Validator, FormatChecker
 
-SCHEMA_PATH = Path(__file__).resolve().parents[1] / "schemas/0.3/schema.json"
+SCHEMA_PATH = Path(__file__).resolve().parents[1] / "schemas/1.0/schema.json"
 
 
 class CoreLoader(yaml.SafeLoader):

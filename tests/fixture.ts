@@ -18,7 +18,7 @@ export function fixture() {
   put('README.md', '# Source code\n');
   git(root, ['add', 'README.md']); git(root, ['commit', '-m', 'Initial code']);
   const files = new Map([
-    ['project.yaml', 'format: alphabook\nformat_version: "0.3"\nid: b556899e-eb59-4e98-89c4-157e62fddf1e\nname: Test project\nplanning_branch: alphabook\ncode_branch: main\n'],
+    ['project.yaml', 'format: alphabook\nformat_version: "1.0"\nid: b556899e-eb59-4e98-89c4-157e62fddf1e\nname: Test project\nplanning_branch: alphabook\ncode_branch: main\n'],
     ['tasks/T-001.md', task('T-001', 'planned')],
     ['tasks/T-002.md', task('T-002', 'planned', 'depends_on: [T-001]\n')],
     ['decisions/D-001.md', '---\nkind: decision\nid: D-001\ntitle: Keep files portable\nstatus: accepted\n---\nDecision body.\n'],

@@ -55,7 +55,7 @@ async function refresh(force = false) {
     $('project-path').textContent = projects.find(p => p.id === projectId)?.root || '';
     $('context').textContent = 'Snapshot unavailable';
     $('metrics').innerHTML = ''; $('diagnostics').innerHTML = ''; $('task-count').textContent = '';
-    $('view-note').textContent = 'This project needs a valid Alphabook Format 0.3 plan committed to its alphabook branch. No planning checkout is required.';
+    $('view-note').textContent = 'This project needs a valid Alphabook Format 1.0 plan committed to its alphabook branch. No planning checkout is required.';
     $('activity-strip').innerHTML = '';
     $('content').innerHTML = '<div class="empty-state">This snapshot cannot be read. No cached task state is being shown.</div>';
     showError(error);

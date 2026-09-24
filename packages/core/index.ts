@@ -6,9 +6,9 @@ import { spawnSync } from 'node:child_process';
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 import { isAlias, isMap, isScalar, parseDocument, visit } from 'yaml';
-import schema from '../../schemas/0.3/schema.json' with { type: 'json' };
+import schema from '../../schemas/1.0/schema.json' with { type: 'json' };
 
-export type Manifest = { format: 'alphabook'; format_version: '0.3'; id: string; name: string; planning_branch: 'alphabook'; code_branch?: string };
+export type Manifest = { format: 'alphabook'; format_version: '1.0'; id: string; name: string; planning_branch: 'alphabook'; code_branch?: string };
 export type TaskStatus = 'planned' | 'in_progress' | 'blocked' | 'review' | 'done' | 'cancelled';
 export type Metadata = { kind: 'task' | 'decision'; id: string; title: string; status: string; depends_on?: string[]; decisions?: string[]; paths?: string[]; artifacts?: string[]; branches?: string[]; commits?: string[]; assignee?: string; supersedes?: string; extensions?: Record<string, unknown> };
 export type RecordFile = { meta: Metadata; body: string; content: string; path: string; revision: string; ready?: boolean };
@@ -170,7 +170,7 @@ export function isPlanningRef(root: string, head: string | null, branch: string 
 }
 export function planningHead(root: string): string {
   const oid = gitOrNull(root, ['rev-parse', '--verify', 'refs/heads/alphabook^{commit}']);
-  if (!oid) throw new Error('No local alphabook branch. Initialize planning, or after cloning create alphabook from fetched origin/alphabook. Older planning formats require an explicit migration.');
+  if (!oid) throw new Error('No local alphabook branch. Initialize planning, or after cloning create alphabook from fetched origin/alphabook.');
   return oid;
 }
 

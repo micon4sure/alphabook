@@ -25,6 +25,9 @@ test('bundled UI, security headers and no worktree/view switches', async () => {
   const response = await fetch(base), text = await response.text();
   expect(response.status).toBe(200); expect(text).toContain('SHARED PLAN');
   expect(text).toContain('<title>Alphabook</title>');
+  expect(text).toContain('Alphabook Format 1.0');
+  expect(text).toContain('Minimalistic, accessible, machine-readable project planning.');
+  expect(text).not.toContain('EXPERIMENTAL');
   expect(text).toContain('Alphabook home'); expect(text).not.toContain('COMMAND');
   expect(text).toContain('ALPHABOOK BY <a href="https://techtile.media"');
   expect(text).not.toContain('FILE-FIRST PROJECT PLANNING');

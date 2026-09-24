@@ -21,6 +21,8 @@ test('configuration and CLI use Alphabook names without legacy aliases', () => {
     expect(alphabookHome()).toBe('/chosen/alphabook-registry');
     const pkg = JSON.parse(readFileSync(resolve('package.json'), 'utf8'));
     expect(pkg.name).toBe('alphabook');
+    expect(pkg.version).toBe('1.0.0');
+    expect(pkg.license).toBe('MIT');
     expect(pkg.scripts.alphabook).toBe('bun apps/cli.ts');
     expect(pkg.scripts.command).toBeUndefined();
   } finally {
@@ -174,6 +176,7 @@ test('initialize adds only planning history without checking out a directory', (
   git(root, ['config', 'user.name', 'Alphabook Test']); git(root, ['config', 'user.email', 'test@example.invalid']);
   const result = initializeProject(root, 'Fresh', { home: f.registry.home });
   expect(snapshot(result.project).project.code_branch).toBe('master');
+  expect(snapshot(result.project).project.format_version).toBe('1.0');
   expect(git(root, ['branch', '--show-current']).trim()).toBe('master');
   expect(existsSync(join(root, '.alphabook'))).toBe(false);
   expect(worktrees(result.project)).toHaveLength(1);

@@ -22,6 +22,7 @@ test('shared dashboard, four worktrees, file-only updates and safe UI CRUD', asy
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   await page.goto(base);
   await expect(page).toHaveTitle('Alphabook');
+  await expect(page.locator('.format-version')).toHaveText('Alphabook Format 1.0');
   await expect(page.getByRole('link', { name: 'Alphabook home' })).toBeVisible();
   const logo = page.locator('.brand-icon');
   await expect(logo).toBeVisible();

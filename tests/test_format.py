@@ -31,7 +31,7 @@ class FormatTests(unittest.TestCase):
 
     def test_example_and_self_tracking(self):
         self.assertTrue(validate(self.project)["valid"])
-        self.assertEqual(json.loads((ROOT / "schemas/0.3/schema.json").read_text())["$id"], "urn:alphabook-format:0.3")
+        self.assertEqual(json.loads((ROOT / "schemas/1.0/schema.json").read_text())["$id"], "urn:alphabook-format:1.0")
 
     def test_yaml_core_scalars(self):
         value = metadata("title: on\ndate: 2026-09-24\nnumber: 012\noctal: 0o12\nexponent: 1e2\nyes: true\n")
@@ -43,8 +43,8 @@ class FormatTests(unittest.TestCase):
                 metadata(text)
 
     def test_unsupported_version(self):
-        self.edit("project.yaml", '"0.3"', '"9.0"')
-        self.assert_invalid("0.3")
+        self.edit("project.yaml", '"1.0"', '"9.0"')
+        self.assert_invalid("1.0")
 
     def test_filename_identity(self):
         self.edit("tasks/T-002.md", "id: T-002", "id: T-999")

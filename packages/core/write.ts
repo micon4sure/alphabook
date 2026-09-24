@@ -82,7 +82,7 @@ export function initializeProject(path: string, name: string, options: { codeBra
   if (gitOrNull(repo.commonDir, ['show-ref', '--verify', 'refs/heads/alphabook'])) throw new Error('alphabook already exists; register the project instead');
   const codeBranch = options.codeBranch || gitOrNull(repo.root, ['symbolic-ref', '--quiet', '--short', 'HEAD']) || undefined;
   if (codeBranch) checkBranch(repo.commonDir, codeBranch);
-  const data = { format: 'alphabook', format_version: '0.3', id: randomUUID(), name, planning_branch: 'alphabook', ...(codeBranch ? { code_branch: codeBranch } : {}) };
+  const data = { format: 'alphabook', format_version: '1.0', id: randomUUID(), name, planning_branch: 'alphabook', ...(codeBranch ? { code_branch: codeBranch } : {}) };
   const text = stringify(data);
   manifest(text, repo.commonDir);
   const commit = candidateCommit(repo.commonDir, null, new Map([['project.yaml', text]]), 'Initialize shared project planning\n');

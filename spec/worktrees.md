@@ -1,4 +1,4 @@
-# One shared plan, many code worktrees — draft 0.3
+# One shared plan, many code worktrees
 
 The planning branch is `alphabook`. It has independent history and contains only
 project.yaml, tasks/, decisions/, docs/ and artifacts/ at its root. There is no

@@ -5,7 +5,7 @@ import { join, resolve } from 'node:path';
 import { fixture, task } from './fixture';
 import { git, snapshot } from '../packages/core/index';
 const f = fixture(), context = { projectId: f.project.id };
-const client = new Client({ name: 'alphabook-test-client', version: '0.3.0' });
+const client = new Client({ name: 'alphabook-test-client', version: '1.0.0' });
 const transport = new StdioClientTransport({ command: process.execPath, args: [resolve('apps/mcp.ts')], env: { ...process.env, ALPHABOOK_HOME: f.registry.home } as Record<string, string>, stderr: 'pipe' });
 beforeAll(async () => { await client.connect(transport); });
 afterAll(async () => { await client.close(); f.cleanup(); });
@@ -14,6 +14,7 @@ async function call(name: string, args: Record<string, unknown> = {}) {
 }
 test('real stdio discovery distinguishes read-only tools from planning mutations', async () => {
   expect(client.getServerVersion()?.name).toBe('alphabook-planning');
+  expect(client.getServerVersion()?.version).toBe('1.0.0');
   const result = await client.listTools();
   expect(result.tools).toHaveLength(17);
   expect(result.tools.filter(t => t.annotations?.readOnlyHint)).toHaveLength(11);

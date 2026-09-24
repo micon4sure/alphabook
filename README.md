@@ -1,64 +1,88 @@
 # Alphabook
 
-A small local planning app. One shared plan on an **orphan `alphabook` branch**;
-code stays on the repository's normal branches. The dashboard shows all code
-worktrees together. No planning checkout or sibling directory is required.
+**Minimalistic, accessible, machine-readable project planning.**
 
-**Agents: start with [AGENT_PRIMER.md](AGENT_PRIMER.md).** It covers initialization,
-registration, task planning, worktrees, plain-Git CRUD, MCP and finishing work.
+Alphabook keeps your tasks, decisions, documentation and artifacts in Git,
+connected to the code they describe. A small web app makes the plan easy to
+browse and edit. Plain Markdown and structured YAML make it readable by people,
+agents and other tools.
 
-## Run
+Your plan belongs to your repository. No database, hosted account or MCP server
+is required. Use the web UI, CLI, optional MCP interface, or just files and Git.
 
-Requires Bun 1.4 and Git with a configured author identity for writes.
+## Get started
+
+You'll need **Bun 1.4+** and **Git** with your author name and email configured.
 
 ```sh
+git clone https://github.com/micon4sure/alphabook.git
+cd alphabook
 bun install --frozen-lockfile
 bun start
 ```
 
-Open <http://127.0.0.1:4320>. Register an absolute repository path that already has
-an Alphabook Format 0.3 alphabook branch, or initialize a new plan using the CLI/MCP. No code is
-copied, moved or renamed by registration.
+Open [localhost:4320](http://127.0.0.1:4320).
+
+To start planning an existing Git project, run this from the Alphabook directory
+in another terminal:
 
 ```sh
-bun run alphabook init /absolute/project "Project name"
-bun run alphabook register /absolute/project
-bun run alphabook projects
-bun run alphabook show LOCAL_PROJECT_ID
-bun run alphabook validate LOCAL_PROJECT_ID
+bun run alphabook init /absolute/path/to/project "My project"
 ```
 
-Initialization creates only a metadata root commit and local registration; it
-never switches code HEAD or imports files from the code checkout. It refuses to
-replace alphabook. Existing projects need an explicit migration, not reinitialization.
+This creates its planning branch and registers it with the app, without changing
+the project's code. Create tasks, set dependencies, record decisions and attach
+documentation through the dashboard.
 
-## Model
+Already have an Alphabook plan? Use **Register project** in the UI, or:
 
-The same Git repository has two independent histories:
+```sh
+bun run alphabook register /absolute/path/to/project
+```
 
-- Code branches: source, builds and code commits, with `Task: T-001` trailers.
-- `alphabook`: `project.yaml`, tasks, decisions, docs and artifacts.
+After cloning a project with an existing plan, create its local planning branch
+before registering it: `git branch --track alphabook origin/alphabook`, run inside
+that project's checkout. This does not switch your code branch.
 
-Task records name their code branches and optionally full code commit IDs. The
-dashboard combines that single plan with observed branch/HEAD/dirty state from
-all local worktrees. Status is recorded information, not live agent monitoring.
-`main`/`master` names do not matter to planning and are never renamed.
+## One project, one shared plan
 
-The app reads committed alphabook objects directly. Every UI/MCP/CLI planning edit
-validates the candidate complete plan and commits to alphabook. Expected file
-revision and branch-tip checks prevent silently overwriting concurrent edits.
-Code files, code HEAD and the real code index are untouched. Plain Git can perform
-the same CRUD operations; see the primer. Never merge code and planning histories.
+Code stays on your normal branches. Planning lives on a separate `alphabook`
+branch in the same repository, with its own history:
 
-Changes refresh every four seconds while the page is visible. The UI supports
-creating, editing and deleting records/docs; Git retains deleted content. Prefer
-cancelling historical tasks. Binary or LFS payloads are listed without pretending
-a pointer is the actual artifact.
+```text
+alphabook branch
+├── project.yaml
+├── tasks/
+├── decisions/
+├── docs/
+└── artifacts/
+```
 
-## Optional MCP
+All code worktrees share this plan. One person in a single checkout or several
+agents in separate worktrees can track their work in the same dashboard. Tasks
+link to code branches and commits; dependencies show what's ready to start.
 
-The MCP interface is part of this application, not a separate source of truth.
-Run `bun run mcp`, or have a stdio client launch it. The web server need not run.
+Connect a code commit to a task with a Git trailer:
+
+```sh
+git commit -m "Add project search" -m "Task: T-001"
+```
+
+Alphabook reads the planning branch directly—no extra checkout is needed. Edits
+through the UI, CLI or MCP become validated Git commits. Conflicting writes are
+rejected so another contributor's changes aren't silently overwritten.
+
+Push and fetch the planning branch alongside your code to share both. Any Git
+remote works; GitHub is optional. Planning and code histories stay separate.
+
+## For agents and tools
+
+The [agent primer](AGENT_PRIMER.md) covers registration, task planning, worktrees,
+code links and plain-Git reading and editing. The [1.0 format](spec/1.0.md) and
+[JSON Schema](schemas/1.0/schema.json) let other tools read and write the same plan.
+
+MCP is an optional convenience layer for querying tasks and editing planning
+files. It does not run agents or require the web app. For a stdio MCP client:
 
 ```json
 {
@@ -71,71 +95,22 @@ Run `bun run mcp`, or have a stdio client launch it. The web server need not run
 }
 ```
 
-Adapt the enclosing config to your client. Use an absolute Bun executable path if
-the client's PATH differs. Both interfaces use the same ALPHABOOK_HOME value.
-There is no public HTTP MCP endpoint. No agent/client configuration is modified
-automatically.
+See the [MCP interface](spec/mcp.md) and [worktree workflow](spec/worktrees.md)
+for details.
 
-There are 11 query tools and 6 mutation tools. Start with list_projects/read_project;
-no worktree selection is needed to read the plan. Write tools accept the exact
-alphabook HEAD and file revision returned by a read. Conflicts require a fresh read
-and reconciliation, not force-overwriting. [Tool contract](spec/mcp.md).
+## Configuration
 
-## Local state and service
+- `ALPHABOOK_PORT`: web port, default `4320`.
+- `ALPHABOOK_HOME`: local registration directory, default `~/.local/share/alphabook`.
 
-Registrations live in ALPHABOOK_HOME/projects.json, default
-~/.local/share/alphabook/projects.json. They are machine-local paths, not project
-records. UUIDs identify projects; common Git directories distinguish local clones
-and deduplicate linked worktrees.
+The app is for local use and binds to `127.0.0.1`. It is not an authenticated
+public server. It never automatically fetches, pushes or executes project code.
 
-ALPHABOOK_PORT defaults to 4320. The app binds only to 127.0.0.1 with host/origin
-checks. It trusts the local user; it is not an authenticated public deployment.
-Do not expose it publicly. Nothing automatically fetches, pushes or runs agents.
+## Contributing and license
 
-This development instance uses a separate transient user service:
+See [Contributing](CONTRIBUTING.md) for development setup and tests.
 
-```sh
-systemctl --user status alphabook-preview
-journalctl --user -u alphabook-preview -n 50
-systemctl --user restart alphabook-preview
-```
+Alphabook is [MIT licensed](LICENSE). The bundled DINish font uses the
+[SIL Open Font License](apps/web/fonts/DINish-OFL.txt).
 
-It survives terminal closure, but is not enabled for reboot. Restart after app code
-changes because assets are bundled on startup. Planning commits need no restart.
-The old Command Center on ports 4310/5173 is separate and untouched.
-
-## Verification and limits
-
-```sh
-bun run typecheck
-bun test tests/core.test.ts tests/server.test.ts tests/mcp.test.ts tests/primer.test.ts
-bun run test:browser
-python3 -m unittest discover -s tests -v
-python3 tools/validate.py examples/minimal
-```
-
-Python's requirements-dev.txt is only needed for the independent file validator.
-That validator reads a directory of planning files; the CLI validates the live
-Git branch. The example is a planning tree, not a code checkout layout.
-
-Current reader bounds: 2 MiB per file, 5000 files per scanned folder, 10-second Git
-operations. Commit scans expose truncation. Planning symlinks/submodules are
-rejected. Only text CRUD is supported by the convenience writer. Plain Git can
-store binary artifacts. Previews sanitize HTML and do not load remote images.
-Direct-ref writers refuse while alphabook is checked out anywhere in the repository.
-
-## Format and migration
-
-[Draft 0.3](spec/0.3.md), [schema](schemas/0.3/schema.json),
-[worktrees](spec/worktrees.md), [MCP](spec/mcp.md).
-This is experimental, not an adopted/stable standard. Draft 0.3 puts project.yaml,
-tasks/, decisions/, docs/ and artifacts/ directly at the alphabook branch root.
-There is no .alphabook directory. Earlier formats, branch names, environment
-variables, CLI names and MCP resource names are not supported through aliases.
-Historical specifications are archival only. Migrate old projects explicitly;
-initializing a new empty plan is not migration. This checkout lives at
-`/backup/_HOT/alphabook`. DOMINATION has deliberately not been migrated.
-
-New code/spec material is MIT licensed. The old Command Center supplied only
-the visual palette/control styling and unmodified DINish font, whose
-[SIL Open Font License](apps/web/fonts/DINish-OFL.txt) is included.
+By [Techtile](https://techtile.media).

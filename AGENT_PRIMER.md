@@ -18,8 +18,8 @@ into code history or code into alphabook. Do not rename a repository's code bran
 ## 1. Adopt an existing repository
 
 Inspect its instructions, Git status, worktrees and refs first. Do not overwrite
-existing planning or alter unrelated staged code. Older planning systems need an
-explicit migration; do not initialize an empty plan over them.
+existing planning or alter unrelated staged code. Read an existing plan before
+making changes; do not initialize an empty plan over it.
 
 ```sh
 git status --short
@@ -261,7 +261,7 @@ New-project manifest (generate a fresh UUID rather than reusing this example):
 
 ```yaml
 format: alphabook
-format_version: "0.3"
+format_version: "1.0"
 id: "f8103a53-d8ce-4eaa-8460-2c7b1fc7e8d3"
 name: Example project
 planning_branch: alphabook

@@ -79,7 +79,7 @@ test('primer initializes an independent orphan history and refuses reinitializat
   git(root, ['config', 'commit.gpgsign', 'false']);
   git(root, ['commit', '--allow-empty', '-m', 'Initial code']);
   const source = git(root, ['rev-parse', 'HEAD']), input = join(root, '.git', 'manifest.yaml');
-  writeFileSync(input, `format: alphabook\nformat_version: "0.3"\nid: ${randomUUID()}\nname: Primer project\nplanning_branch: alphabook\ncode_branch: master\n`);
+  writeFileSync(input, `format: alphabook\nformat_version: "1.0"\nid: ${randomUUID()}\nname: Primer project\nplanning_branch: alphabook\ncode_branch: master\n`);
   succeeded(run(root, 'init', 'project.yaml', '', input));
   expect(git(root, ['rev-list', '--parents', '--max-count=1', 'alphabook']).trim().split(' ')).toHaveLength(1);
   expect(() => git(root, ['merge-base', 'master', 'alphabook'])).toThrow();
