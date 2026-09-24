@@ -6,7 +6,7 @@ import { spawnSync } from 'node:child_process';
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 import { isAlias, isMap, isScalar, parseDocument, visit } from 'yaml';
-import schema from '../../schemas/0.1/schema.json';
+import schema from '../../schemas/0.1/schema.json' with { type: 'json' };
 
 export type Manifest = { format: 'repo-project'; format_version: '0.1'; id: string; name: string; integration_branch: string };
 export type TaskStatus = 'planned' | 'in_progress' | 'blocked' | 'done' | 'cancelled';

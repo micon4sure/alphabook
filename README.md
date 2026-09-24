@@ -2,8 +2,8 @@
 
 A new local Command Center for planning and tracking projects in their own Git
 repositories. This repository currently contains the first **experimental format
-draft**, schemas, fixtures, validators and a shared TypeScript file/Git reader.
-The application and MCP server are next; neither is implemented yet.
+draft**, schemas, fixtures, validators, a shared TypeScript file/Git reader and a
+working local web application. The optional MCP query adapter is next.
 
 The working name **Repository Project Format (RPF)** is provisional. The goal is
 an openly implementable format that other tools can read and write. This is a
@@ -42,6 +42,45 @@ Read [the draft](spec/0.1.md), [worktree workflow](spec/worktrees.md),
 [MCP mapping](spec/mcp.md), and [schema](schemas/0.1/schema.json).
 `examples/minimal` is a portable example; `.command/` tracks this repository itself.
 
+## Run Command Center
+
+Install Bun 1.4, then from this repository:
+
+```sh
+bun install --frozen-lockfile
+bun start
+```
+
+Open <http://127.0.0.1:4320>. Register an absolute Git checkout path (or its
+`.command` directory). An RPF 0.1 manifest must already exist. Registration never
+copies code or migrates legacy `.command` formats. The app reads local files and
+local Git refs; it does not fetch, push, merge, run agents or change planning files.
+Use ordinary file tools to edit records and ordinary Git to commit them.
+
+The **Accepted plan** view reads the registered integration branch's committed
+tree. **Checkout files** reads the selected worktree, including uncommitted edits.
+The Worktrees section compares recorded progress; it does not claim to detect
+running agents. Changes refresh every four seconds while the page is visible.
+Binary artifacts are listed; textual artifacts can be previewed.
+
+`COMMAND_PORT` changes the port. The app binds only to `127.0.0.1`; it is a
+trusted-local-user tool, not an authenticated remote deployment. Host/origin
+checks and write headers guard local browser access. Do not expose it publicly.
+Assets are bundled on startup, so restart the new app after changing its code;
+planning file changes never require a restart.
+
+For this development checkout, a separate transient user service keeps the app
+alive independently of the terminal. It is not configured to start after reboot:
+
+```sh
+systemctl --user status command-center-preview
+journalctl --user -u command-center-preview -n 50
+systemctl --user restart command-center-preview
+systemctl --user stop command-center-preview
+```
+
+This service is separate from the old Command Center on ports 4310/5173.
+
 ## Validate the draft fixtures
 
 The shared application core can be verified with Bun 1.4:
@@ -50,6 +89,7 @@ The shared application core can be verified with Bun 1.4:
 bun install --frozen-lockfile
 bun test tests/core.test.ts
 bun run typecheck
+bun run test:browser
 ```
 
 It keeps registrations in `COMMAND_HOME/projects.json` (by default
@@ -81,5 +121,7 @@ implementation feedback, and change the draft where practical use reveals gaps.
 Versioned schemas and common fixtures should make interoperability testable.
 Publishing, a final name and a stable release can follow that evidence.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). New material in this repository is MIT
-licensed; no existing project contents have been imported.
+See [CONTRIBUTING.md](CONTRIBUTING.md). New code and specification material are MIT
+licensed. The visual palette and controls follow the existing Command Center;
+the bundled unmodified DINish font retains its [SIL Open Font License](apps/web/fonts/DINish-OFL.txt).
+No old application logic, project data or layout has been imported.

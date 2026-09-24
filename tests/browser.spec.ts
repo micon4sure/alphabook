@@ -1,0 +1,70 @@
+import { test, expect } from '@playwright/test';
+import { spawn, type ChildProcess } from 'node:child_process';
+import { once } from 'node:events';
+import { join } from 'node:path';
+import { fixture, task } from './fixture';
+import { git } from '../packages/core/index';
+
+let f: ReturnType<typeof fixture>, child: ChildProcess, base = '';
+test.beforeAll(async () => {
+  f = fixture();
+  f.registry.unregister(f.project.id);
+  child = spawn('bun', ['apps/server.ts'], { cwd: process.cwd(), env: { ...process.env, COMMAND_HOME: f.registry.home, COMMAND_PORT: '0' }, stdio: ['ignore', 'pipe', 'pipe'] });
+  base = await new Promise<string>((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error('Browser test server did not start')), 10_000);
+    child.stdout!.on('data', chunk => { const found = /http:\/\/127\.0\.0\.1:\d+/.exec(String(chunk)); if (found) { clearTimeout(timeout); resolve(found[0]); } });
+    child.once('error', reject);
+    child.once('exit', code => { clearTimeout(timeout); reject(new Error(`Browser server exited: ${code}`)); });
+    child.stderr!.on('data', chunk => process.stderr.write(chunk));
+  });
+});
+test.afterAll(async () => { if (child && child.exitCode === null) { child.kill(); await once(child, 'exit'); } f?.cleanup(); });
+
+test('register, browse all sections, refresh external edits and inspect worktrees', async ({ page }, info) => {
+  const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+  await page.goto(base);
+  await expect(page.getByRole('heading', { name: 'A clear view of the work.' })).toBeVisible();
+  await page.getByRole('button', { name: 'Register your first project' }).click();
+  await page.getByLabel('Absolute project directory').fill(f.root);
+  await page.getByRole('button', { name: 'Register project', exact: true }).click();
+  await expect(page.locator('#project-name')).toHaveText('Test project');
+  await expect(page.locator('.record-row')).toHaveCount(2);
+  await expect(page.locator('#commits')).toContainText('Initial plan');
+  await page.getByRole('button', { name: 'Task graph', exact: true }).click();
+  await expect(page.getByRole('group', { name: 'Task dependency graph' })).toBeVisible();
+  await page.getByRole('button', { name: 'Open T-002: Task T-002' }).press('Enter');
+  await expect(page.locator('#detail h2')).toHaveText('Task T-002');
+  await page.getByRole('button', { name: 'Decisions', exact: true }).click();
+  await expect(page.locator('#detail')).toContainText('Decision body.');
+  await page.getByRole('button', { name: 'Documentation', exact: true }).click();
+  await expect(page.locator('#detail')).toContainText('Ordinary files work.');
+  await page.getByRole('button', { name: 'Artifacts', exact: true }).click();
+  await expect(page.locator('#detail')).toContainText('Passed.');
+
+  const linked = join(f.dir, 'feature'); git(f.root, ['worktree', 'add', '-b', 'feature', linked]);
+  f.put('.command/tasks/T-001.md', task('T-001', 'done'), linked);
+  git(linked, ['add', '.']); git(linked, ['commit', '-m', 'Complete first task\n\nTask: T-001']);
+  await page.getByRole('button', { name: 'Worktrees', exact: true }).click();
+  await expect(page.locator('.tree-card')).toHaveCount(2);
+  await expect(page.locator('.tree-card').filter({ has: page.getByRole('heading', { name: 'feature', exact: true }) })).toContainText('awaiting integration');
+  await page.locator('.tree-card').filter({ has: page.getByRole('heading', { name: 'feature', exact: true }) }).getByRole('button', { name: 'Inspect checkout files' }).click();
+  await expect(page.locator('#source')).toHaveValue('checkout');
+  await expect(page.locator('.record-row').first()).toContainText('done');
+  await page.locator('#source').selectOption('accepted');
+  await expect(page.locator('.record-row').first()).toContainText('ready');
+  await page.locator('#source').selectOption('checkout');
+  await expect(page.locator('.record-row').first()).toContainText('done');
+  await expect(page.locator('.record-row').nth(1)).toContainText('ready');
+  f.put('.command/tasks/T-002.md', task('T-002', 'in_progress', 'depends_on: [T-001]\n', '# External edit\n\n<script>window.__xss = 1</script>\n<img src=x onerror="window.__xss = 2">\n[bad](javascript:alert(1))\n'), linked);
+  await expect(page.locator('.record-row').nth(1)).toContainText('in progress', { timeout: 10_000 });
+  await page.locator('.record-row').nth(1).click();
+  await expect(page.locator('#detail')).toContainText('External edit');
+  expect(await page.evaluate(() => (window as unknown as { __xss?: number }).__xss)).toBeUndefined();
+  await expect(page.locator('#detail img, #detail script, #detail a[href^="javascript:"]')).toHaveCount(0);
+  expect(await page.locator('body').evaluate(el => getComputedStyle(el).fontFamily)).toContain('Command DIN');
+  await page.screenshot({ path: info.outputPath('desktop.png'), fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: info.outputPath('mobile.png'), fullPage: true });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  expect(errors).toEqual([]);
+});

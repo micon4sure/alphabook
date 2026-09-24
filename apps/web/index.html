@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark"><title>Command Center</title>
+  <link rel="stylesheet" href="/style.css"><script type="module" src="/app.js"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to project</a>
+  <header class="topbar">
+    <a href="/" class="brand"><span class="mark">C<span>_</span></span><span>COMMAND <strong>CENTER</strong></span></a>
+    <div class="project-picker"><label for="project">Project</label><select id="project"><option value="">No projects registered</option></select></div>
+    <button id="register-open" class="primary">+ Register project</button>
+  </header>
+  <main id="main">
+    <section id="empty" class="welcome">
+      <span class="eyebrow">YOUR REPOSITORY. YOUR PLAN.</span>
+      <h1>A clear view of the work.</h1>
+      <p>Tasks, decisions and documentation live in your project's <code>.command/</code> directory.<br>Register a checkout to see the plan and follow it across Git worktrees.</p>
+      <button id="empty-register" class="primary">Register your first project <span>↗</span></button>
+      <div class="principles"><span>01 &nbsp; Files are the source of truth</span><span>02 &nbsp; Git keeps the history</span><span>03 &nbsp; Worktrees keep work separate</span></div>
+    </section>
+    <div id="project-view" hidden>
+      <section class="project-heading"><div><span class="eyebrow">PROJECT WORKSPACE <span class="draft">RPF 0.1 · EXPERIMENTAL</span></span><h1 id="project-name"></h1><p id="project-path" class="mono path"></p></div><button id="unregister" class="subtle">Unregister</button></section>
+      <div class="context-bar"><div class="context-controls"><label>Worktree <select id="checkout"></select></label><label>View <select id="source"><option value="accepted">Accepted plan</option><option value="checkout">Checkout files</option></select></label></div><div class="context-status"><span id="context"></span><button id="refresh" aria-label="Refresh project">↻ Refresh</button></div></div>
+      <p id="view-note" class="view-note"></p>
+      <div id="metrics" class="metrics"></div>
+      <nav class="tabs" aria-label="Project sections">
+        <button data-tab="tasks" class="active">Tasks <span id="task-count"></span></button><button data-tab="graph">Task graph</button><button data-tab="decisions">Decisions</button><button data-tab="docs">Documentation</button><button data-tab="artifacts">Artifacts</button><button data-tab="worktrees">Worktrees</button>
+      </nav>
+      <div id="diagnostics" role="status"></div>
+      <section id="content"></section>
+    </div>
+    <p id="error" class="error" role="alert" hidden></p>
+    <footer><span>COMMAND / FILE-FIRST PROJECT PLANNING</span><span id="sync-note">Local files · Ordinary Git · Optional MCP</span></footer>
+  </main>
+  <dialog id="register-dialog"><form id="register-form"><div class="dialog-heading"><span class="eyebrow">CONNECT A REPOSITORY</span><button type="button" id="register-close" class="subtle" aria-label="Close registration">✕</button></div><h2>Register a project</h2><p>Choose an existing Git checkout containing an RPF 0.1 <code>.command/project.yaml</code>.</p><label for="register-path">Absolute project directory</label><input id="register-path" name="path" placeholder="/path/to/your/project" required autocomplete="off"><p class="hint">Registration stays on this machine. Project files are not copied, changed or migrated.</p><p id="register-error" class="error" role="alert" hidden></p><button type="submit" class="primary">Register project</button></form></dialog>
+</body>
+</html>
