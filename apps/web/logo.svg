@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <title>Alphabook — a book with an alpha symbol</title>
+  <path d="M13 5h25a2 2 0 0 1 2 2v35H13a4 4 0 0 1-4-4V9a4 4 0 0 1 4-4Z" fill="#111e29" stroke="#ff8b35" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M40 34H13a4 4 0 0 0 0 8M14 6v28" stroke="#ff8b35" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M15 38h19" stroke="#a5b2c0" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M31 15c-2 3.7-3.6 8.8-6.4 10.8-1.4 1-3.6.5-4.5-1.2-1.3-2.4-.2-6.7 1.8-8.6 1.5-1.4 3.4-1.5 4.7-.3 1.7 1.5 1.8 4.7 2.2 7.2.3 2 1.2 3.3 3 2.8" stroke="#ff8b35" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

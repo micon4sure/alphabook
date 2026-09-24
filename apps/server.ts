@@ -19,6 +19,7 @@ export async function createServer(options: { port?: number; home?: string } = {
     ['/', { body: await Bun.file(webRoot + 'index.html').text(), type: 'text/html; charset=utf-8' }],
     ['/app.js', { body: js, type: 'text/javascript; charset=utf-8' }],
     ['/style.css', { body: await Bun.file(webRoot + 'style.css').text(), type: 'text/css; charset=utf-8' }],
+    ['/logo.svg', { body: await Bun.file(webRoot + 'logo.svg').text(), type: 'image/svg+xml' }],
   ]);
   const server = Bun.serve({
     hostname: '127.0.0.1', port: options.port ?? Number(process.env.ALPHABOOK_PORT || 4320), maxRequestBodySize: 3 * 1024 * 1024,

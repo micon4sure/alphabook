@@ -23,6 +23,10 @@ test('shared dashboard, four worktrees, file-only updates and safe UI CRUD', asy
   await page.goto(base);
   await expect(page).toHaveTitle('Alphabook');
   await expect(page.getByRole('link', { name: 'Alphabook home' })).toBeVisible();
+  const logo = page.locator('.brand-icon');
+  await expect(logo).toBeVisible();
+  await expect(logo).toHaveAttribute('src', '/logo.svg');
+  expect(await logo.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
   await expect(page.locator('footer')).toContainText('ALPHABOOK BY TECHTILE');
   const credit = page.getByRole('link', { name: 'TECHTILE', exact: true });
   await expect(credit).toHaveAttribute('href', 'https://techtile.media');

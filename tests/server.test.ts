@@ -32,6 +32,11 @@ test('bundled UI, security headers and no worktree/view switches', async () => {
   expect(response.headers.get('content-security-policy')).toContain("frame-ancestors 'none'");
   expect((await fetch(base + '/app.js')).status).toBe(200);
   expect((await fetch(base + '/DINish-Regular.ttf')).status).toBe(200);
+  const logo = await fetch(base + '/logo.svg');
+  expect(logo.status).toBe(200);
+  expect(logo.headers.get('content-type')).toBe('image/svg+xml');
+  expect(await logo.text()).toContain('Alphabook — a book with an alpha symbol');
+  expect(text).toContain('rel="icon" type="image/svg+xml" href="/logo.svg"');
 });
 test('one project overview, shared snapshot and code/planning commits', async () => {
   const prefix = `${base}/api/projects/${f.project.id}`;
