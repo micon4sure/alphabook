@@ -23,6 +23,11 @@ test('shared dashboard, four worktrees, file-only updates and safe UI CRUD', asy
   await page.goto(base);
   await expect(page).toHaveTitle('Alphabook');
   await expect(page.getByRole('link', { name: 'Alphabook home' })).toBeVisible();
+  await expect(page.locator('footer')).toContainText('ALPHABOOK BY TECHTILE');
+  const credit = page.getByRole('link', { name: 'TECHTILE', exact: true });
+  await expect(credit).toHaveAttribute('href', 'https://techtile.media');
+  await expect(credit).toHaveAttribute('target', '_blank');
+  await expect(credit).toHaveAttribute('rel', 'noopener noreferrer');
   await page.getByRole('button', { name: 'Register your first project' }).click();
   await page.getByLabel('Absolute project directory').fill(f.root);
   await page.getByRole('button', { name: 'Register project', exact: true }).click();

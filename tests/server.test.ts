@@ -26,6 +26,8 @@ test('bundled UI, security headers and no worktree/view switches', async () => {
   expect(response.status).toBe(200); expect(text).toContain('SHARED PLAN');
   expect(text).toContain('<title>Alphabook</title>');
   expect(text).toContain('Alphabook home'); expect(text).not.toContain('COMMAND');
+  expect(text).toContain('ALPHABOOK BY <a href="https://techtile.media"');
+  expect(text).not.toContain('FILE-FIRST PROJECT PLANNING');
   expect(text).not.toContain('id="checkout"'); expect(text).not.toContain('id="source"');
   expect(response.headers.get('content-security-policy')).toContain("frame-ancestors 'none'");
   expect((await fetch(base + '/app.js')).status).toBe(200);
