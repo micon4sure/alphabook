@@ -1,89 +1,64 @@
-# Command
+# Command Center
 
-A new local Command Center for planning and tracking projects in their own Git
-repositories. This repository currently contains the first **experimental format
-draft**, schemas, fixtures, validators, a shared TypeScript file/Git reader and a
-working local web application and an optional read-only MCP query adapter.
+A small local planning app. One shared plan on an **orphan `command` branch**;
+code stays on the repository's normal branches. The dashboard shows all code
+worktrees together. No planning checkout or sibling directory is required.
 
-The working name **Repository Project Format (RPF)** is provisional. The goal is
-an openly implementable format that other tools can read and write. This is a
-proposal, not an adopted industry standard or a stable 1.0 commitment.
+**Agents: start with [AGENT_PRIMER.md](AGENT_PRIMER.md).** It covers initialization,
+registration, task planning, worktrees, plain-Git CRUD, MCP and finishing work.
 
-## Separation
+## Run
 
-- This Git repository holds the Command application and the draft specification.
-- Each managed project keeps its own code and `.command/` files in its own Git repo.
-- Command registers existing checkout locations locally and reads their current
-  files. Any index/database is a disposable cache.
-- Worktrees share project identity but have independent files, branches and HEADs.
-  The default dashboard separates the accepted integration-branch plan from each
-  task branch's proposed progress.
-- A normal editor or another compatible tool can maintain the files without
-  Command or MCP. An optional MCP adapter edits planning files and can commit
-  those edits using ordinary Git. No coordination server is required.
-
-```text
-project/
-  src/
-  .command/
-    project.yaml
-    tasks/T-001.md
-    decisions/D-001.md
-    docs/
-    artifacts/
-```
-
-Task-related commits carry `Task: T-001` trailers. Code and task changes can be
-committed together; planning-only edits can have their own commits. Git history
-supplies the task-to-commit mapping; task files
-do not contain their own commit hash. GitHub is an optional remote.
-
-Read [the draft](spec/0.1.md), [worktree workflow](spec/worktrees.md),
-[MCP mapping](spec/mcp.md), and [schema](schemas/0.1/schema.json).
-`examples/minimal` is a portable example; `.command/` tracks this repository itself.
-
-## Run Command Center
-
-Install Bun 1.4, then from this repository:
+Requires Bun 1.4 and Git with a configured author identity for writes.
 
 ```sh
 bun install --frozen-lockfile
 bun start
 ```
 
-Open <http://127.0.0.1:4320>. Register an absolute Git checkout path (or its
-`.command` directory). An RPF 0.1 manifest must already exist. Registration never
-copies code or migrates legacy `.command` formats. The app reads local files and
-local Git refs; it does not fetch, push, merge, run agents or change planning files.
-Use ordinary file tools to edit records and ordinary Git to commit them.
-
-The **Accepted plan** view reads the registered integration branch's committed
-tree. **Checkout files** reads the selected worktree, including uncommitted edits.
-The Worktrees section compares recorded progress; it does not claim to detect
-running agents. Changes refresh every four seconds while the page is visible.
-Binary artifacts are listed; textual artifacts can be previewed.
-
-`COMMAND_PORT` changes the port. The app binds only to `127.0.0.1`; it is a
-trusted-local-user tool, not an authenticated remote deployment. Host/origin
-checks and write headers guard local browser access. Do not expose it publicly.
-Assets are bundled on startup, so restart the new app after changing its code;
-planning file changes never require a restart.
-
-For this development checkout, a separate transient user service keeps the app
-alive independently of the terminal. It is not configured to start after reboot:
+Open <http://127.0.0.1:4320>. Register an absolute repository path that already has
+an RPF 0.2 command branch, or initialize a new plan using the CLI/MCP. No code is
+copied, moved or renamed by registration.
 
 ```sh
-systemctl --user status command-center-preview
-journalctl --user -u command-center-preview -n 50
-systemctl --user restart command-center-preview
-systemctl --user stop command-center-preview
+bun run command init /absolute/project "Project name"
+bun run command register /absolute/project
+bun run command projects
+bun run command show LOCAL_PROJECT_ID
+bun run command validate LOCAL_PROJECT_ID
 ```
 
-This service is separate from the old Command Center on ports 4310/5173.
+Initialization creates only a metadata root commit and local registration; it
+never switches code HEAD or adopts an existing .command folder. It refuses to
+replace command. Existing projects need an explicit migration, not reinitialization.
 
-## Optional MCP service
+## Model
 
-Run `bun run mcp`, or configure a stdio MCP client to launch the entrypoint:
+The same Git repository has two independent histories:
+
+- Code branches: source, builds and code commits, with `Task: T-001` trailers.
+- `command`: `.command/project.yaml`, tasks, decisions, docs and artifacts.
+
+Task records name their code branches and optionally full code commit IDs. The
+dashboard combines that single plan with observed branch/HEAD/dirty state from
+all local worktrees. Status is recorded information, not live agent monitoring.
+`main`/`master` names do not matter to planning and are never renamed.
+
+The app reads committed command objects directly. Every UI/MCP/CLI planning edit
+validates the candidate complete plan and commits to command. Expected file
+revision and branch-tip checks prevent silently overwriting concurrent edits.
+Code files, code HEAD and the real code index are untouched. Plain Git can perform
+the same CRUD operations; see the primer. Never merge code and planning histories.
+
+Changes refresh every four seconds while the page is visible. The UI supports
+creating, editing and deleting records/docs; Git retains deleted content. Prefer
+cancelling historical tasks. Binary or LFS payloads are listed without pretending
+a pointer is the actual artifact.
+
+## Optional MCP
+
+The MCP interface is part of this application, not a separate source of truth.
+Run `bun run mcp`, or have a stdio client launch it. The web server need not run.
 
 ```json
 {
@@ -96,71 +71,78 @@ Run `bun run mcp`, or configure a stdio MCP client to launch the entrypoint:
 }
 ```
 
-Adapt the enclosing configuration key to your client. If the client does not
-inherit your shell's PATH, replace `bun` with the absolute result of `command -v
-bun`. Use the same `COMMAND_HOME` environment value as the web app if you override
-the registry location. The client starts the stdio process; no HTTP MCP endpoint
-or separately running web server is needed. No client settings are modified by
-installing Command.
+Adapt the enclosing config to your client. Use an absolute Bun executable path if
+the client's PATH differs. Both interfaces use the same COMMAND_HOME value.
+There is no public HTTP MCP endpoint. No agent/client configuration is modified
+automatically.
 
-Start with `list_projects`, then `list_worktrees`. Pass the returned local
-`projectId`, `checkoutId` and explicit `source` (`checkout` or `accepted`) to
-`list_tasks`, `read_task`, `read_project`, decision/document queries or validation.
-`list_tasks` defaults to open tasks; `filter: "ready"` checks dependencies.
+There are 11 query tools and 6 mutation tools. Start with list_projects/read_project;
+no worktree selection is needed to read the plan. Write tools accept the exact
+command HEAD and file revision returned by a read. Conflicts require a fresh read
+and reconciliation, not force-overwriting. [Tool contract](spec/mcp.md).
 
-All 11 current tools are read-only. Planning edits and commits use ordinary file
-and Git tools for now; MCP mutation tools are a documented future extension.
-See [the tool contract](spec/mcp.md).
+## Local state and service
 
-## Validate the draft fixtures
+Registrations live in COMMAND_HOME/projects.json, default
+~/.local/share/command/projects.json. They are machine-local paths, not project
+records. UUIDs identify projects; common Git directories distinguish local clones
+and deduplicate linked worktrees.
 
-The shared application core can be verified with Bun 1.4:
+COMMAND_PORT defaults to 4320. The app binds only to 127.0.0.1 with host/origin
+checks. It trusts the local user; it is not an authenticated public deployment.
+Do not expose it publicly. Nothing automatically fetches, pushes or runs agents.
+
+This development instance uses a separate transient user service:
 
 ```sh
-bun install --frozen-lockfile
-bun test tests/core.test.ts tests/server.test.ts tests/mcp.test.ts
+systemctl --user status command-center-preview
+journalctl --user -u command-center-preview -n 50
+systemctl --user restart command-center-preview
+```
+
+It survives terminal closure, but is not enabled for reboot. Restart after app code
+changes because assets are bundled on startup. Planning commits need no restart.
+The old Command Center on ports 4310/5173 is separate and untouched.
+
+## Verification and limits
+
+```sh
 bun run typecheck
+bun test tests/core.test.ts tests/server.test.ts tests/mcp.test.ts
 bun run test:browser
+python3 -m unittest discover -s tests -v
+python3 tools/validate.py examples/minimal
 ```
 
-It keeps registrations in `COMMAND_HOME/projects.json` (by default
-`~/.local/share/command/projects.json`), outside managed repositories. A project
-UUID identifies shared planning history; a Git common-directory identity
-distinguishes local clones and deduplicates linked worktrees. Registration records
-the integration branch; re-register after deliberately changing that branch.
+Python's requirements-dev.txt is only needed for the independent file validator.
+That validator reads a directory of planning files; the CLI validates the live
+Git branch. The example is a planning tree, not a code checkout layout.
 
-Python 3.10+ and the dependencies in `requirements-dev.txt` are needed only for
-the reference validator. Implementations of the format may use any language.
+Current reader bounds: 2 MiB per file, 5000 files per scanned folder, 10-second Git
+operations. Commit scans expose truncation. Planning symlinks/submodules are
+rejected. Only text CRUD is supported by the convenience writer. Plain Git can
+store binary artifacts. Previews sanitize HTML and do not load remote images.
+Direct-ref writers refuse while command is checked out anywhere in the repository.
+
+## Format and migration
+
+[Draft 0.2](spec/0.2.md), [schema](schemas/0.2/schema.json),
+[worktrees](spec/worktrees.md), [MCP](spec/mcp.md).
+RPF is a provisional name; this is experimental, not an adopted/stable standard.
+
+For this application's earlier 0.1 layout, the explicit migration helper is:
 
 ```sh
-python3 -m venv .venv
-.venv/bin/pip install -r requirements-dev.txt
-.venv/bin/python tools/validate.py .
-.venv/bin/python tools/validate.py examples/minimal
-.venv/bin/python -m unittest discover -s tests -v
+bun tools/migrate-command.ts /absolute/repository
 ```
 
-The validator checks the current files, schema and references. It does not change
-files, assign work, implement Git integration or run an MCP server. A directory
-with no valid manifest is reported as unsupported; existing legacy `.command`
-formats must be explicitly migrated later.
+It creates an orphan command history, preserves the project UUID, moves original
+planning files to a recovery directory inside the Git common directory, and stages
+their removal from the code branch. Review and commit those deletions normally.
+It refuses existing command branches, staged planning edits and binary/symlink
+input. It never publishes remotely or rewrites existing code history. This is not
+a converter for unrelated legacy Command Center formats.
 
-The application reader currently handles local checkouts, files up to 2 MiB and
-folder scans up to 5000 files. Accepted snapshots do not follow Git symlinks.
-Large/binary artifacts should be kept in appropriate external storage or Git LFS;
-the viewer is not an artifact hosting service. Relative Markdown links and images
-are not followed in previews; repository contents cannot load scripts or remote
-images. Git operations have a 10-second timeout. These are implementation limits,
-not requirements of the portable format.
-
-## Towards a useful public format
-
-Keep 0.1 small, build Command and an MCP adapter against it, collect independent
-implementation feedback, and change the draft where practical use reveals gaps.
-Versioned schemas and common fixtures should make interoperability testable.
-Publishing, a final name and a stable release can follow that evidence.
-
-See [CONTRIBUTING.md](CONTRIBUTING.md). New code and specification material are MIT
-licensed. The visual palette and controls follow the existing Command Center;
-the bundled unmodified DINish font retains its [SIL Open Font License](apps/web/fonts/DINish-OFL.txt).
-No old application logic, project data or layout has been imported.
+New code/spec material is MIT licensed. The existing Command Center supplied only
+the visual palette/control styling and unmodified DINish font, whose
+[SIL Open Font License](apps/web/fonts/DINish-OFL.txt) is included.

@@ -5,5 +5,5 @@
     "strict": true, "noEmit": true, "allowImportingTsExtensions": true,
     "resolveJsonModule": true, "esModuleInterop": true, "skipLibCheck": true
   },
-  "include": ["packages/**/*.ts", "apps/**/*.ts", "tests/**/*.ts", "playwright.config.ts"]
+  "include": ["packages/**/*.ts", "apps/**/*.ts", "tools/**/*.ts", "tests/**/*.ts", "playwright.config.ts"]
 }

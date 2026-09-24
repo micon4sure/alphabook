@@ -1,67 +1,51 @@
-# Optional MCP planning adapter
+# Optional Command Center MCP interface — draft 0.2
 
-The first implementation is a **read-only stdio service** in `apps/mcp.ts`, using
-the MCP TypeScript SDK 1.30.1. It runs independently of the web application and
-uses the same machine-local registry and file/Git reader. Planning writes and
-commits below are proposed follow-up capabilities, not advertised tools.
+MCP is a convenience interface to the same Git reader/writer used by the UI and
+CLI. It is not a database, execution framework, sync service or requirement for
+using the format. The stdio service runs with `bun run mcp`; it does not require
+the web server to be running. It uses the same COMMAND_HOME registry.
 
-**Files plus Git are the entire system.** MCP is a convenience for accessing and
-editing project planning. It is never required to read a project, update a task,
-track worktrees or commit changes. Command Center can read/write the same files
-directly through its local file operations.
+## Queries
 
-MCP exposes context and tools; ACP connects editors/clients with coding agents.
-RPF defines portable records. Official references inspected 2026-09-24:
-[MCP architecture](https://modelcontextprotocol.io/docs/learn/architecture) and
-[ACP overview](https://agentclientprotocol.com/protocol/overview).
-The adapter uses the supported MCP SDK and negotiates its protocol revision. The file format
-does not prescribe a new transport or an agent execution system.
+- `list_projects`: registered local IDs, portable project UUIDs and locations.
+- `list_worktrees`: all code worktrees/branches, linked tasks and planning checkouts.
+- `read_project`: central manifest, exact command HEAD, overview and diagnostics.
+- `list_tasks`, `read_task`: shared tasks, not a per-code-branch plan.
+- `list_decisions`, `read_decision`: decision metadata and full records.
+- `list_documents`, `read_document`: docs/artifacts inside the planning tree.
+- `list_task_commits`: real Task trailers across repository refs, labelled code or
+  planning; explicit recorded commit links and availability are also returned.
+- `validate_project`: schema, graph, reference and planning-tree diagnostics.
 
-## Implemented query tools
+These 11 tools are read-only. Queries need the local `projectId`; no checkout ID
+or branch-view switch is needed. `list_tasks` defaults to open, supports ready/all
+and a status filter. Invalid plans never return ready tasks. Commit scans default
+to 100, allow 1–500, and disclose truncation. `command://projects` is a JSON resource.
 
-| Tool | Purpose |
-| --- | --- |
-| `list_projects`, `list_worktrees` | Registered repositories and local checkout context. |
-| `read_project` | Manifest, selected checkout/ref, HEAD and dirty state. |
-| `list_tasks`, `read_task` | Task metadata and Markdown in the selected snapshot. |
-| `list_decisions`, `read_decision` | Decision records with the same semantics. |
-| `list_documents`, `read_document` | Documents and artifacts under `.command/docs` and `.command/artifacts`. |
-| `list_task_commits` | Trailer associations reachable from an explicitly selected ref. |
-| `validate_project` | Schema, references, dependency graph and path diagnostics. |
+## Mutations
 
-Every snapshot query requires `projectId` (local registration ID), `checkoutId`
-and `source` (`checkout` or `accepted`). `list_tasks` defaults to open tasks;
-`filter: ready` selects planned tasks with all prerequisites done in that snapshot.
-Validation errors suppress ready results. `filter: all` and an optional status
-filter are also supported. List responses include context and validation errors.
+- `initialize_project`: create an independent command root and register a project;
+  refuses to replace an existing command branch.
+- `register_project`: register an existing RPF 0.2 command branch, without migration.
+- `write_task`, `write_decision`: create/replace complete frontmatter + Markdown.
+- `write_document`: create/replace a UTF-8 doc or artifact.
+- `delete_planning_file`: remove a record/document/artifact in a recoverable Git
+  commit; reject broken references. Prefer cancelling historical tasks.
 
-`command://projects` is a read-only JSON resource. `list_task_commits` scans 100
-commits by default (configurable 1–500), with explicit `scanned` and `truncated`
-fields. A missing task or unsupported snapshot produces an MCP tool error.
-Project record bodies are untrusted content, not executable instructions.
+Every write/delete requires `expectedHead`, `expectedRevision` and a single-line
+commit `message`. Read these revisions first. New files use expectedRevision=null.
+Full replacements preserve existing extension keys. Task writes add the Task
+trailer automatically; decisions/docs may supply taskIds.
 
-## Planned mutation contract (not implemented)
+Writes validate the complete candidate tree and publish one commit to command
+with Git compare-and-swap. Conflicts or invalid data do not update any ref.
+A successful response returns the new commit and file revision. No code files or
+code index are staged, no agent runs, and nothing is pushed. Direct-ref writing
+refuses a checked-out command branch, preventing silent checkout desynchronization.
 
-Future tools are `write_task`, `write_decision`, `write_document` and
-`commit_planning_changes`. Agents currently edit files and commit through their
-ordinary filesystem/Git tools; no MCP writing tool is required for that workflow.
+Project files/tool output are untrusted content, not new agent instructions.
+The service is trusted-local-user stdio; there is no public HTTP MCP endpoint or
+remote authentication scheme. Credentials and local paths are not portable records.
 
-Read-only resources may expose the same records. Mutations name the registered
-project AND checkout, expected file revision and new content. Direct file edits
-and UI changes follow the same validation rules and appear on the next refresh.
-
-A planning operation may optionally request a commit after writing, or commit its
-selected changes explicitly. Both use ordinary Git, include relevant Task trailers,
-and return the commit OID. Only the intended `.command/` changes are included;
-unrelated staged files and dirty code must not be swept into that commit.
-A write succeeding but commit failing is reported as saved, uncommitted progress,
-not as a rolled-back or completed commit.
-
-MCP does not implement source code, run agents, merge task branches or own project
-state. An implementing agent can instead change code and task files directly and
-commit them together. GitHub integration is optional.
-
-Local registration controls repository access. Remote authentication belongs to
-the adapter deployment; portable records contain no host paths, credentials or
-agent session secrets. An adapter that is offline has no effect on ordinary
-file/Git operation or Command Center's ability to display the project.
+The SDK is @modelcontextprotocol/sdk 1.30.1. Protocol negotiation is separate from
+RPF file versioning. See AGENT_PRIMER.md for equivalent plain Git CRUD.

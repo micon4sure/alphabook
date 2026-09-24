@@ -16,14 +16,15 @@
     <section id="empty" class="welcome">
       <span class="eyebrow">YOUR REPOSITORY. YOUR PLAN.</span>
       <h1>A clear view of the work.</h1>
-      <p>Tasks, decisions and documentation live in your project's <code>.command/</code> directory.<br>Register a checkout to see the plan and follow it across Git worktrees.</p>
+      <p>One shared plan on your repository's <code>command</code> branch.<br>Register a project to see its tasks and all code worktrees together.</p>
       <button id="empty-register" class="primary">Register your first project <span>↗</span></button>
       <div class="principles"><span>01 &nbsp; Files are the source of truth</span><span>02 &nbsp; Git keeps the history</span><span>03 &nbsp; Worktrees keep work separate</span></div>
     </section>
     <div id="project-view" hidden>
-      <section class="project-heading"><div><span class="eyebrow">PROJECT WORKSPACE <span class="draft">RPF 0.1 · EXPERIMENTAL</span></span><h1 id="project-name"></h1><p id="project-path" class="mono path"></p></div><button id="unregister" class="subtle">Unregister</button></section>
-      <div class="context-bar"><div class="context-controls"><label>Worktree <select id="checkout"></select></label><label>View <select id="source"><option value="accepted">Accepted plan</option><option value="checkout">Checkout files</option></select></label></div><div class="context-status"><span id="context"></span><button id="refresh" aria-label="Refresh project">↻ Refresh</button></div></div>
+      <section class="project-heading"><div><span class="eyebrow">PROJECT WORKSPACE <span class="draft">RPF 0.2 · EXPERIMENTAL</span></span><h1 id="project-name"></h1><p id="project-path" class="mono path"></p></div><button id="unregister" class="subtle">Unregister</button></section>
+      <div class="context-bar"><div><span class="eyebrow">SHARED PLAN</span> <code>command</code> <span class="hint">· All code branches and worktrees</span></div><div class="context-status"><span id="context"></span><button id="refresh" aria-label="Refresh project">↻ Refresh</button></div></div>
       <p id="view-note" class="view-note"></p>
+      <div id="activity-strip"></div>
       <div id="metrics" class="metrics"></div>
       <nav class="tabs" aria-label="Project sections">
         <button data-tab="tasks" class="active">Tasks <span id="task-count"></span></button><button data-tab="graph">Task graph</button><button data-tab="decisions">Decisions</button><button data-tab="docs">Documentation</button><button data-tab="artifacts">Artifacts</button><button data-tab="worktrees">Worktrees</button>
@@ -34,6 +35,7 @@
     <p id="error" class="error" role="alert" hidden></p>
     <footer><span>COMMAND / FILE-FIRST PROJECT PLANNING</span><span id="sync-note">Local files · Ordinary Git · Optional MCP</span></footer>
   </main>
-  <dialog id="register-dialog"><form id="register-form"><div class="dialog-heading"><span class="eyebrow">CONNECT A REPOSITORY</span><button type="button" id="register-close" class="subtle" aria-label="Close registration">✕</button></div><h2>Register a project</h2><p>Choose an existing Git checkout containing an RPF 0.1 <code>.command/project.yaml</code>.</p><label for="register-path">Absolute project directory</label><input id="register-path" name="path" placeholder="/path/to/your/project" required autocomplete="off"><p class="hint">Registration stays on this machine. Project files are not copied, changed or migrated.</p><p id="register-error" class="error" role="alert" hidden></p><button type="submit" class="primary">Register project</button></form></dialog>
+  <dialog id="register-dialog"><form id="register-form"><div class="dialog-heading"><span class="eyebrow">CONNECT A REPOSITORY</span><button type="button" id="register-close" class="subtle" aria-label="Close registration">✕</button></div><h2>Register a project</h2><p>Choose a Git repository with an RPF 0.2 plan on its <code>command</code> branch. No planning checkout is needed.</p><label for="register-path">Absolute project directory</label><input id="register-path" name="path" placeholder="/path/to/your/project" required autocomplete="off"><p class="hint">Registration stays on this machine. Project files are not copied, changed or migrated.</p><p id="register-error" class="error" role="alert" hidden></p><button type="submit" class="primary">Register project</button></form></dialog>
+  <dialog id="editor-dialog"><form id="editor-form"><div class="dialog-heading"><span class="eyebrow">PLANNING FILE / COMMAND BRANCH</span><button type="button" id="editor-close" class="subtle" aria-label="Close editor">✕</button></div><h2 id="editor-title">Edit planning file</h2><label for="editor-path">Repository-relative planning path</label><input id="editor-path" required autocomplete="off"><label for="editor-content">File content (YAML frontmatter + Markdown for records)</label><textarea id="editor-content" rows="16" required></textarea><label for="editor-message">Commit message</label><input id="editor-message" required maxlength="200"><p class="hint">Saved as one commit on command. Code files and the code index are untouched. Concurrent changes are checked before publishing.</p><p id="editor-error" class="error" role="alert" hidden></p><div class="editor-actions"><button type="button" id="editor-delete">Delete file…</button><button type="submit" class="primary">Save & commit</button></div></form></dialog>
 </body>
 </html>

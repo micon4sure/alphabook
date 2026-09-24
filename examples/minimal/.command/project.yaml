@@ -1,5 +1,6 @@
 format: repo-project
-format_version: "0.1"
+format_version: "0.2"
 id: "b556899e-eb59-4e98-89c4-157e62fddf1e"
 name: Example project
-integration_branch: main
+planning_branch: command
+code_branch: main

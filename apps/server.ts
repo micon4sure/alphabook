@@ -1,5 +1,7 @@
 import { fileURLToPath } from 'node:url';
 import { Registry, message, snapshot, taskCommits, worktrees } from '../packages/core/index';
+import { overview } from '../packages/core/overview';
+import { writePlanning } from '../packages/core/write';
 
 const webRoot = fileURLToPath(new URL('./web/', import.meta.url));
 const securityHeaders = {
@@ -19,7 +21,7 @@ export async function createServer(options: { port?: number; home?: string } = {
     ['/style.css', { body: await Bun.file(webRoot + 'style.css').text(), type: 'text/css; charset=utf-8' }],
   ]);
   const server = Bun.serve({
-    hostname: '127.0.0.1', port: options.port ?? Number(process.env.COMMAND_PORT || 4320), maxRequestBodySize: 16_384,
+    hostname: '127.0.0.1', port: options.port ?? Number(process.env.COMMAND_PORT || 4320), maxRequestBodySize: 3 * 1024 * 1024,
     async fetch(request) {
       const url = new URL(request.url);
       const hosts = [`127.0.0.1:${server.port}`, `localhost:${server.port}`];
@@ -35,32 +37,23 @@ export async function createServer(options: { port?: number; home?: string } = {
             return json({ project: registry.register(body.path) }, 201);
           }
         }
-        const match = /^\/api\/projects\/([a-f0-9]{20})(?:\/(worktrees|snapshot|commits|activity))?$/.exec(url.pathname);
+        const match = /^\/api\/projects\/([a-f0-9]{20})(?:\/(worktrees|snapshot|commits|overview|planning))?$/.exec(url.pathname);
         if (match) {
           const project = registry.get(match[1]);
           if (!match[2] && request.method === 'DELETE') { registry.unregister(project.id); return json({ removed: true }); }
+          if (match[2] === 'planning' && request.method === 'POST') {
+            const body = await request.json();
+            if (typeof body.path !== 'string' || !(body.content === null || typeof body.content === 'string') || typeof body.expectedHead !== 'string' || !(body.expectedRevision === null || typeof body.expectedRevision === 'string') || typeof body.message !== 'string' || body.taskIds !== undefined && (!Array.isArray(body.taskIds) || body.taskIds.some((id: unknown) => typeof id !== 'string'))) return json({ error: 'Expected path, content (or null to delete), expectedHead, expectedRevision and message' }, 400);
+            return json(writePlanning({ project, path: body.path, content: body.content, expectedHead: body.expectedHead, expectedRevision: body.expectedRevision, message: body.message, taskIds: body.taskIds }));
+          }
           if (request.method !== 'GET') return json({ error: 'Method not allowed' }, 405);
           if (match[2] === 'worktrees') return json({ worktrees: worktrees(project) });
-          if (match[2] === 'activity') {
-            const trees = worktrees(project);
-            let accepted: ReturnType<typeof snapshot> | null = null;
-            try { accepted = snapshot(project, trees.find(t => t.available)!.id, 'accepted'); } catch { /* Missing branch is shown separately. */ }
-            const activity = trees.map(tree => {
-              try {
-                const state = snapshot(project, tree.id);
-                return { ...tree, dirty: state.context.dirty, errors: state.errors, tasks: state.tasks.filter(t => t.meta.status === 'in_progress' || t.meta.status === 'blocked' || t.meta.status === 'done' && accepted?.tasks.find(a => a.meta.id === t.meta.id)?.meta.status !== 'done').map(t => ({ id: t.meta.id, title: t.meta.title, status: t.meta.status, assignee: t.meta.assignee, pendingIntegration: t.meta.status === 'done' })) };
-              } catch (error) { return { ...tree, tasks: [], errors: [message(error)] }; }
-            });
-            return json({ activity, acceptedAvailable: Boolean(accepted) });
-          }
-          const checkout = url.searchParams.get('checkout');
-          const source = url.searchParams.get('source') || 'checkout';
-          if (!checkout || !['checkout', 'accepted'].includes(source)) return json({ error: 'Explicit checkout and valid source are required' }, 400);
-          if (match[2] === 'snapshot') return json(snapshot(project, checkout, source as 'checkout' | 'accepted'));
+          if (match[2] === 'overview') return json(overview(project));
+          if (match[2] === 'snapshot') return json(snapshot(project));
           if (match[2] === 'commits') {
             const task = url.searchParams.get('task');
             if (!task) return json({ error: 'task is required' }, 400);
-            return json(taskCommits(project, checkout, task, source as 'checkout' | 'accepted'));
+            return json(taskCommits(project, task));
           }
         }
         if (request.method === 'GET' || request.method === 'HEAD') {

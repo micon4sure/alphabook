@@ -31,7 +31,7 @@ class FormatTests(unittest.TestCase):
 
     def test_example_and_self_tracking(self):
         self.assertTrue(validate(self.project)["valid"])
-        self.assertTrue(validate(ROOT)["valid"])
+        self.assertEqual(json.loads((ROOT / "schemas/0.2/schema.json").read_text())["$id"], "urn:repo-project-format:0.2")
 
     def test_yaml_core_scalars(self):
         value = metadata("title: on\ndate: 2026-09-24\nnumber: 012\noctal: 0o12\nexponent: 1e2\nyes: true\n")
@@ -43,8 +43,8 @@ class FormatTests(unittest.TestCase):
                 metadata(text)
 
     def test_unsupported_version(self):
-        self.edit(".command/project.yaml", '"0.1"', '"9.0"')
-        self.assert_invalid("0.1")
+        self.edit(".command/project.yaml", '"0.2"', '"9.0"')
+        self.assert_invalid("0.2")
 
     def test_filename_identity(self):
         self.edit(".command/tasks/T-002.md", "id: T-002", "id: T-999")
@@ -97,30 +97,39 @@ class FormatTests(unittest.TestCase):
                 cwd=cwd, input=text, text=True, capture_output=True, check=True,
             ).stdout
 
-        git(self.project, "init", "-b", "main")
+        git(self.project, "init", "-b", "command")
         git(self.project, "add", ".command")
         git(self.project, "commit", "-m", "Initial plan")
+        git(self.project, "switch", "--orphan", "main")
+        (self.project / "README.md").write_text("Source code")
+        git(self.project, "add", "README.md")
+        git(self.project, "commit", "-m", "Initial code")
         worktree = self.base / "task-worktree"
         git(self.project, "worktree", "add", "-b", "task/T-002", str(worktree))
         self.assertTrue((worktree / ".git").is_file())
-        task = worktree / ".command/tasks/T-002.md"
-        task.write_text(task.read_text().replace("status: planned", "status: in_progress\nassignee: agent-17"))
-        self.assertTrue(validate(worktree)["valid"])
-        self.assertEqual(read_record(self.project / ".command/tasks/T-002.md")[0]["status"], "planned")
-        git(worktree, "add", ".command/tasks/T-002.md")
-        git(worktree, "commit", "-m", "Start browser task\n\nTask: T-002")
+        self.assertFalse((worktree / ".command").exists())
+        planning = self.base / "optional-planning-checkout"
+        git(self.project, "worktree", "add", str(planning), "command")
+        task = planning / ".command/tasks/T-002.md"
+        task.write_text(task.read_text().replace("status: planned", "status: in_progress\nassignee: agent-17\nbranches: [task/T-002]"))
+        self.assertTrue(validate(planning)["valid"])
+        git(planning, "add", ".command/tasks/T-002.md")
+        git(planning, "commit", "-m", "Start browser task\n\nTask: T-002")
         (worktree / "src").mkdir()
         (worktree / "src/browser.txt").write_text("fixture implementation")
-        task.write_text(task.read_text().replace("status: in_progress", "status: done"))
-        git(worktree, "add", "src/browser.txt", ".command/tasks/T-002.md")
+        git(worktree, "add", "src/browser.txt")
         git(worktree, "commit", "-m", "Finish browser task\n\nTask: T-002")
-        self.assertIn("status: planned", git(self.project, "show", "main:.command/tasks/T-002.md"))
-        self.assertIn("status: done", git(self.project, "show", "task/T-002:.command/tasks/T-002.md"))
+        self.assertIn("status: in_progress", git(worktree, "show", "command:.command/tasks/T-002.md"))
         self.assertEqual(git(worktree, "interpret-trailers", "--parse", text=git(worktree, "log", "-1", "--format=%B")).strip(), "Task: T-002")
         git(self.project, "merge", "--ff-only", "task/T-002")
-        self.assertEqual(read_record(self.project / ".command/tasks/T-002.md")[0]["status"], "done")
+        code_commit = git(worktree, "rev-parse", "HEAD").strip()
+        task.write_text(task.read_text().replace("status: in_progress", f"status: done\ncommits: [{code_commit}]"))
+        git(planning, "add", ".command/tasks/T-002.md")
+        git(planning, "commit", "-m", "Record verified completion\n\nTask: T-002")
+        self.assertEqual(read_record(task)[0]["status"], "done")
         self.assertTrue((self.project / "src/browser.txt").is_file())
-        self.assertTrue(validate(self.project)["valid"])
+        self.assertFalse((self.project / ".command").exists())
+        self.assertTrue(validate(planning)["valid"])
 
 
 if __name__ == "__main__":

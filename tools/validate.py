@@ -9,7 +9,7 @@ from pathlib import Path
 import yaml
 from jsonschema import Draft202012Validator, FormatChecker
 
-SCHEMA_PATH = Path(__file__).resolve().parents[1] / "schemas/0.1/schema.json"
+SCHEMA_PATH = Path(__file__).resolve().parents[1] / "schemas/0.2/schema.json"
 
 
 class CoreLoader(yaml.SafeLoader):
@@ -124,7 +124,7 @@ def validate(root):
         manifest = inside(root, root / ".command/project.yaml")
         project = metadata(manifest.read_text(encoding="utf-8"))
         check(project, "project")
-        branch = project["integration_branch"]
+        branch = project.get("code_branch", "command")
         result = subprocess.run(["git", "check-ref-format", f"refs/heads/{branch}"], capture_output=True)
         if result.returncode or branch.startswith("-") or branch == "HEAD":
             raise ValueError("invalid integration branch name")
@@ -146,9 +146,15 @@ def validate(root):
                     if record["id"] in ids:
                         raise ValueError(f"duplicate record ID {record['id']}")
                     ids.add(record["id"])
+                    for branch in record.get("branches", []):
+                        result = subprocess.run(["git", "check-ref-format", f"refs/heads/{branch}"], capture_output=True)
+                        if result.returncode or branch.startswith("-") or branch in ("HEAD", "command"):
+                            raise ValueError("invalid code branch link")
                     for related in record.get("paths", []) + record.get("artifacts", []):
                         inside(root, root / related)
                     for artifact in record.get("artifacts", []):
+                        if not artifact.startswith(".command/artifacts/"):
+                            raise ValueError(f"missing artifact under .command/artifacts: {artifact}")
                         if not (root / artifact).is_file():
                             raise ValueError(f"missing artifact {artifact}")
                     records[record["id"]] = record
