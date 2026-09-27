@@ -14,7 +14,7 @@ async function call(name: string, args: Record<string, unknown> = {}) {
 }
 test('real stdio discovery distinguishes read-only tools from planning mutations', async () => {
   expect(client.getServerVersion()?.name).toBe('alphabook-planning');
-  expect(client.getServerVersion()?.version).toBe('1.0.0');
+  expect(client.getServerVersion()?.version).toBe('1.1.0');
   const result = await client.listTools();
   expect(result.tools).toHaveLength(17);
   expect(result.tools.filter(t => t.annotations?.readOnlyHint)).toHaveLength(11);

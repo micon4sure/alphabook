@@ -1,6 +1,6 @@
 {
   "name": "alphabook",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Minimalistic, accessible, machine-readable project planning in Git.",
   "license": "MIT",
   "private": true,

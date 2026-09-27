@@ -21,7 +21,7 @@ test('configuration and CLI use Alphabook names without legacy aliases', () => {
     expect(alphabookHome()).toBe('/chosen/alphabook-registry');
     const pkg = JSON.parse(readFileSync(resolve('package.json'), 'utf8'));
     expect(pkg.name).toBe('alphabook');
-    expect(pkg.version).toBe('1.0.0');
+    expect(pkg.version).toBe('1.1.0');
     expect(pkg.license).toBe('MIT');
     expect(pkg.scripts.alphabook).toBe('bun apps/cli.ts');
     expect(pkg.scripts.command).toBeUndefined();
