@@ -3,8 +3,15 @@ import { createServer } from '../apps/server';
 import { fixture } from './fixture';
 import { snapshot } from '../packages/core/index';
 const f = fixture();
+const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
 let server: Awaited<ReturnType<typeof createServer>>, base: string;
-beforeAll(async () => { server = await createServer({ port: 0, home: f.registry.home }); base = `http://127.0.0.1:${server.port}`; });
+beforeAll(async () => {
+  f.rawPlan(new Map<string, string | Buffer>([
+    ['artifacts/pixel.png', png],
+    ['artifacts/pointer.png', 'version https://git-lfs.github.com/spec/v1\noid sha256:0000000000000000000000000000000000000000000000000000000000000000\nsize 68\n'],
+  ]), 'Add image fixtures');
+  server = await createServer({ port: 0, home: f.registry.home }); base = `http://127.0.0.1:${server.port}`;
+});
 afterAll(() => { server?.stop(true); f.cleanup(); });
 test('server port configuration uses ALPHABOOK_PORT, not the old name', async () => {
   const saved = { ALPHABOOK_PORT: process.env.ALPHABOOK_PORT, COMMAND_PORT: process.env.COMMAND_PORT };
@@ -47,6 +54,26 @@ test('one project overview, shared snapshot and code/planning commits', async ()
   expect((await (await fetch(prefix + '/overview')).json()).worktrees).toHaveLength(1);
   expect((await (await fetch(prefix + '/snapshot')).json()).tasks).toHaveLength(2);
   expect((await (await fetch(prefix + '/commits?task=T-001')).json()).commits[0].kind).toBe('planning');
+});
+test('artifact images are served from an exact planning snapshot', async () => {
+  const state = snapshot(f.project), file = state.artifacts.find(artifact => artifact.path === 'artifacts/pixel.png')!;
+  expect(file.mediaType).toBe('image/png');
+  expect(state.artifacts.find(artifact => artifact.path === 'artifacts/pointer.png')?.mediaType).toBeNull();
+  const prefix = `${base}/api/projects/${f.project.id}/artifact`;
+  const query = new URLSearchParams({ path: file.path, head: state.context.head, revision: file.revision });
+  const response = await fetch(`${prefix}?${query}`);
+  expect(response.status).toBe(200);
+  expect(response.headers.get('content-type')).toBe('image/png');
+  expect(response.headers.get('cross-origin-resource-policy')).toBe('same-origin');
+  expect(Buffer.from(await response.arrayBuffer())).toEqual(png);
+  const head = await fetch(`${prefix}?${query}`, { method: 'HEAD' });
+  expect(head.status).toBe(200); expect(head.headers.get('content-length')).toBe(String(png.length)); expect(await head.text()).toBe('');
+  for (const params of [
+    { path: 'artifacts/result.txt', head: state.context.head, revision: state.artifacts.find(artifact => artifact.path === 'artifacts/result.txt')!.revision },
+    { path: 'artifacts/pointer.png', head: state.context.head, revision: state.artifacts.find(artifact => artifact.path === 'artifacts/pointer.png')!.revision },
+    { path: file.path, head: state.context.head, revision: '0'.repeat(64) },
+    { path: 'docs/guide.md', head: state.context.head, revision: file.revision },
+  ]) expect((await fetch(`${prefix}?${new URLSearchParams(params)}`)).status).toBe(400);
 });
 test('cross-origin reads, rebinding hosts and ambient writes are blocked', async () => {
   const cases: Record<string, string>[] = [{ Origin: 'https://evil.example' }, { Host: 'evil.example' }, { 'Sec-Fetch-Site': 'cross-site' }];

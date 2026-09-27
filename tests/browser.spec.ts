@@ -8,6 +8,7 @@ import { git, snapshot } from '../packages/core/index';
 let f: ReturnType<typeof fixture>, child: ChildProcess, base = '';
 test.beforeAll(async () => {
   f = fixture(); f.registry.unregister(f.project.id);
+  f.rawPlan(new Map([['artifacts/pixel.png', Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64')]]), 'Add image fixture');
   child = spawn('bun', ['apps/server.ts'], { cwd: process.cwd(), env: { ...process.env, ALPHABOOK_HOME: f.registry.home, ALPHABOOK_PORT: '0' }, stdio: ['ignore', 'pipe', 'pipe'] });
   base = await new Promise<string>((resolve, reject) => {
     const timeout = setTimeout(() => reject(new Error('Browser test server did not start')), 10_000);
@@ -55,6 +56,12 @@ test('shared dashboard, four worktrees, file-only updates and safe UI CRUD', asy
   await page.getByRole('button', { name: 'Decisions', exact: true }).click();
   await expect(page.locator('#detail')).toContainText('Decision body.');
   await page.getByRole('button', { name: 'Artifacts', exact: true }).click();
+  await page.locator('.record-row').filter({ hasText: 'pixel.png' }).click();
+  const artifactImage = page.getByRole('img', { name: 'Preview of pixel.png' });
+  await expect(artifactImage).toBeVisible();
+  expect(await artifactImage.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth === 1 && image.naturalHeight === 1)).toBe(true);
+  await page.locator('#detail').screenshot({ path: info.outputPath('artifact-preview.png') });
+  await page.locator('.record-row').filter({ hasText: 'result.txt' }).click();
   await expect(page.locator('#detail')).toContainText('Passed.');
   await page.getByRole('button', { name: 'Worktrees', exact: true }).click();
   await expect(page.locator('.tree-card')).toHaveCount(5);

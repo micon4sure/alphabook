@@ -34,9 +34,9 @@ export function fixture() {
     return writePlanning({ project, path, content, expectedHead: head, expectedRevision: previous === null ? null : digest(previous), message: subject });
   };
   // Deliberately bypass application validation to test malformed external Git edits.
-  const rawPlan = (changes: Map<string, string>, subject = 'External Git planning edit') => {
+  const rawPlan = (changes: Map<string, string | Buffer>, subject = 'External Git planning edit') => {
     const temp = mkdtempSync(join(dir, 'index-')), before = planningHead(project.commonDir);
-    const run = (args: string[], input?: string) => {
+    const run = (args: string[], input?: string | Buffer) => {
       const result = spawnSync('git', ['-C', root, ...args], { encoding: 'utf8', input, env: { ...process.env, GIT_INDEX_FILE: join(temp, 'index') } });
       if (result.status !== 0) throw new Error(result.stderr);
       return result.stdout.trim();

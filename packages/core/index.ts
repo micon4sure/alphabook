@@ -12,7 +12,8 @@ export type Manifest = { format: 'alphabook'; format_version: '1.0'; id: string;
 export type TaskStatus = 'planned' | 'in_progress' | 'blocked' | 'review' | 'done' | 'cancelled';
 export type Metadata = { kind: 'task' | 'decision'; id: string; title: string; status: string; depends_on?: string[]; decisions?: string[]; paths?: string[]; artifacts?: string[]; branches?: string[]; commits?: string[]; assignee?: string; supersedes?: string; extensions?: Record<string, unknown> };
 export type RecordFile = { meta: Metadata; body: string; content: string; path: string; revision: string; ready?: boolean };
-export type DocumentFile = { path: string; revision: string; text: string | null; size: number };
+export type ImageMediaType = 'image/png' | 'image/jpeg' | 'image/gif' | 'image/webp';
+export type DocumentFile = { path: string; revision: string; text: string | null; size: number; mediaType: ImageMediaType | null };
 export type Registration = { id: string; root: string; commonDir: string; projectId: string; name: string; planningBranch: 'alphabook' };
 export type Worktree = { id: string; root: string; head: string | null; branch: string | null; locked: boolean; prunable: boolean; available: boolean; role: 'planning' | 'code' };
 export type Snapshot = {
@@ -101,6 +102,19 @@ function localBytes(root: string, path: string): Buffer {
   return readFileSync(target);
 }
 function utf8(bytes: Buffer): string { return new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes); }
+function imageMediaType(bytes: Buffer): ImageMediaType | null {
+  if (bytes.length >= 8 && bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return 'image/png';
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'image/jpeg';
+  if (bytes.length >= 6 && ['GIF87a', 'GIF89a'].includes(bytes.subarray(0, 6).toString('ascii'))) return 'image/gif';
+  if (bytes.length >= 12 && bytes.subarray(0, 4).toString('ascii') === 'RIFF' && bytes.subarray(8, 12).toString('ascii') === 'WEBP') return 'image/webp';
+  return null;
+}
+
+function gitBlob(root: string, object: string, maxBuffer = LIMIT): Buffer {
+  const result = spawnSync('git', ['-C', root, 'cat-file', 'blob', object], { timeout: 10_000, maxBuffer });
+  if (result.error || result.status !== 0) throw new Error(`Cannot read Git blob: ${object.slice(object.indexOf(':') + 1)}`);
+  return result.stdout;
+}
 
 export function alphabookHome() { return resolve(process.env.ALPHABOOK_HOME || join(homedir(), '.local/share/alphabook')); }
 export function isPlanningPath(path: string) { return path === 'project.yaml' || /^(tasks|decisions|docs|artifacts)\/.+/.test(path); }
@@ -191,9 +205,7 @@ export function snapshot(project: Registration, candidate?: string): Snapshot {
     if (!modes.get(path)?.startsWith('100')) throw new Error(`missing or unsupported non-regular Git file: ${path}`);
     const size = Number(git(root, ['cat-file', '-s', `${head}:${path}`]));
     if (size > LIMIT) throw new Error(`file exceeds 2 MiB reader limit: ${path}`);
-    const result = spawnSync('git', ['-C', root, 'cat-file', 'blob', `${head}:${path}`], { timeout: 10_000, maxBuffer: LIMIT });
-    if (result.error || result.status !== 0) throw new Error(`Cannot read Git blob: ${path}`);
-    return result.stdout;
+    return gitBlob(root, `${head}:${path}`);
   };
   const list = (folder: string, recursive = false): string[] => {
     const result = [...modes.keys()].filter(path => path.startsWith(folder + '/') && (recursive || !path.slice(folder.length + 1).includes('/')));
@@ -266,7 +278,7 @@ export function snapshot(project: Registration, candidate?: string): Snapshot {
         const data = bytes(path);
         let text: string | null = null;
         try { const decoded = utf8(data); if (!decoded.includes('\0') && !decoded.startsWith('version https://git-lfs.github.com/spec/v1\n')) text = decoded; } catch { /* Binary and LFS previews are unavailable. */ }
-        result.push({ path, text, size: data.length, revision: digest(data) });
+        result.push({ path, text, size: data.length, revision: digest(data), mediaType: imageMediaType(data) });
       } catch (error) { errors.push(`${path}: ${message(error)}`); }
     } } catch (error) { errors.push(message(error)); }
     return result;
@@ -278,6 +290,17 @@ export function snapshot(project: Registration, candidate?: string): Snapshot {
   };
   if (errors.length) for (const task of tasks) task.ready = false;
   return { ...data, revision: digest(JSON.stringify(data)) };
+}
+
+export function artifactImage(project: Registration, path: string, head: string, revision: string) {
+  if (!path.startsWith('artifacts/')) throw new Error('Image path must be under artifacts');
+  const state = snapshot(project, head);
+  const artifact = state.artifacts.find(file => file.path === path);
+  if (!artifact || artifact.revision !== revision) throw new Error('Artifact does not exist at the requested snapshot and revision');
+  if (!artifact.mediaType) throw new Error('Artifact is not a supported image');
+  const bytes = gitBlob(project.commonDir, `${head}:${path}`);
+  if (digest(bytes) !== artifact.revision) throw new Error('Artifact content changed while reading');
+  return { bytes, mediaType: artifact.mediaType };
 }
 
 export function taskCommits(project: Registration, taskId: string, limit = 100) {

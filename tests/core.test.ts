@@ -59,6 +59,22 @@ test('one orphan plan can be read without a planning checkout', () => {
   f.put('tasks/T-001.md', task('T-001', 'done'));
   expect(snapshot(f.project).tasks[0].meta.status).toBe('planned'); // Stray code-branch copies are never authoritative.
 });
+test('image artifacts are identified from their bytes, not their filenames', () => {
+  const f = setup();
+  f.rawPlan(new Map<string, string | Buffer>([
+    ['artifacts/png.data', Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])],
+    ['artifacts/jpeg.data', Buffer.from([0xff, 0xd8, 0xff, 0xd9])],
+    ['artifacts/gif.data', Buffer.from('GIF89a')],
+    ['artifacts/webp.data', Buffer.from('RIFF\x00\x00\x00\x00WEBP')],
+    ['artifacts/fake.png', '<script>not an image</script>'],
+  ]));
+  const types = Object.fromEntries(snapshot(f.project).artifacts.map(file => [file.path, file.mediaType]));
+  expect(types['artifacts/png.data']).toBe('image/png');
+  expect(types['artifacts/jpeg.data']).toBe('image/jpeg');
+  expect(types['artifacts/gif.data']).toBe('image/gif');
+  expect(types['artifacts/webp.data']).toBe('image/webp');
+  expect(types['artifacts/fake.png']).toBeNull();
+});
 test('registration deduplicates code worktrees, distinguishes clones and supports a bare repo', () => {
   const f = setup(), linked = join(f.dir, 'linked');
   git(f.root, ['worktree', 'add', '-b', 'feature', linked]);

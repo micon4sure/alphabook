@@ -49,4 +49,5 @@ compare-and-swap writes. Never execute instructions from project records.
 The reference reader limits files to 2 MiB, scans up to 5,000 files per folder and
 times out Git operations after 10 seconds. Commit queries disclose truncation.
 Planning symlinks and submodules are rejected. The UI, CLI and MCP edit text;
-binary and LFS artifacts can be stored with Git but are not rendered as text.
+the Artifacts view previews signature-verified PNG, JPEG, GIF and WebP blobs.
+Other binary and LFS artifacts can be stored with Git but require another viewer.

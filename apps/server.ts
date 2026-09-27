@@ -1,5 +1,5 @@
 import { fileURLToPath } from 'node:url';
-import { Registry, message, snapshot, taskCommits, worktrees } from '../packages/core/index';
+import { artifactImage, Registry, message, snapshot, taskCommits, worktrees } from '../packages/core/index';
 import { overview } from '../packages/core/overview';
 import { writePlanning } from '../packages/core/write';
 
@@ -37,6 +37,14 @@ export async function createServer(options: { port?: number; home?: string } = {
             if (typeof body.path !== 'string') return json({ error: 'path must be a string' }, 400);
             return json({ project: registry.register(body.path) }, 201);
           }
+        }
+        const artifactMatch = /^\/api\/projects\/([a-f0-9]{20})\/artifact$/.exec(url.pathname);
+        if (artifactMatch) {
+          if (!['GET', 'HEAD'].includes(request.method)) return json({ error: 'Method not allowed' }, 405);
+          const path = url.searchParams.get('path'), head = url.searchParams.get('head'), revision = url.searchParams.get('revision');
+          if (!path || !head || !revision) return json({ error: 'path, head and revision are required' }, 400);
+          const image = artifactImage(registry.get(artifactMatch[1]), path, head, revision);
+          return new Response(request.method === 'HEAD' ? null : new Uint8Array(image.bytes), { headers: { ...securityHeaders, 'Content-Type': image.mediaType, 'Content-Length': String(image.bytes.length), 'Cross-Origin-Resource-Policy': 'same-origin' } });
         }
         const match = /^\/api\/projects\/([a-f0-9]{20})(?:\/(worktrees|snapshot|commits|overview|planning))?$/.exec(url.pathname);
         if (match) {

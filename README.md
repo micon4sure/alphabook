@@ -61,6 +61,7 @@ alphabook branch
 All code worktrees share this plan. One person in a single checkout or several
 agents in separate worktrees can track their work in the same dashboard. Tasks
 link to code branches and commits; dependencies show what's ready to start.
+The Artifacts view previews committed PNG, JPEG, GIF and WebP evidence directly.
 
 Connect a code commit to a task with a Git trailer:
 

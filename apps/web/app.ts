@@ -106,7 +106,10 @@ function renderContent() {
   }
 }
 function renderDocument(file: DocumentFile) {
-  $('detail').innerHTML = `<div class="detail-head"><span class="eyebrow">${tab === 'docs' ? 'DOCUMENTATION' : 'ARTIFACT'}</span><span class="hint">${file.size} bytes</span>${file.text === null ? '' : '<button id="edit-file">Edit</button>'}</div><h2>${escape(file.path.split('/').pop())}</h2>${file.text === null ? '<p class="hint">Binary artifact or unavailable LFS payload. Preview is unavailable.</p>' : file.path.endsWith('.md') ? `<div class="markdown">${markdown(file.text)}</div>` : `<div class="markdown"><pre>${escape(file.text)}</pre></div>`}<span class="detail-path mono">${escape(file.path)}<br>SHA-256 ${file.revision.slice(0, 16)}</span>`;
+  const name = file.path.split('/').pop()!;
+  const imageUrl = tab === 'artifacts' && file.mediaType && state ? projectUrl(`artifact?path=${encodeURIComponent(file.path)}&head=${encodeURIComponent(state.context.head)}&revision=${encodeURIComponent(file.revision)}`) : '';
+  const preview = imageUrl ? `<figure class="artifact-preview"><img class="artifact-image" src="${escape(imageUrl)}" alt="Preview of ${escape(name)}"></figure>` : file.text === null ? '<p class="hint">Binary artifact or unavailable LFS payload. Preview is unavailable.</p>' : file.path.endsWith('.md') ? `<div class="markdown">${markdown(file.text)}</div>` : `<div class="markdown"><pre>${escape(file.text)}</pre></div>`;
+  $('detail').innerHTML = `<div class="detail-head"><span class="eyebrow">${tab === 'docs' ? 'DOCUMENTATION' : 'ARTIFACT'}</span><span class="hint">${file.size} bytes</span>${file.text === null ? '' : '<button id="edit-file">Edit</button>'}</div><h2>${escape(name)}</h2>${preview}<span class="detail-path mono">${escape(file.path)}<br>SHA-256 ${file.revision.slice(0, 16)}</span>`;
 }
 function renderRecord(row: RecordFile) {
   const { meta } = row;
