@@ -16,6 +16,8 @@ command line, through an optional MCP server for AI agents, or with plain Git.
 - **Safe for parallel work.** Every edit is validated and committed with an
   expected-head check, so concurrent writers can't silently overwrite each other.
 
+![The Alphabook dashboard showing a project's tasks, work in progress across worktrees, and a task's details](docs/dashboard.png)
+
 ## Quick start
 
 Requirements: [Bun](https://bun.sh) 1.4+ and Git with `user.name` and
