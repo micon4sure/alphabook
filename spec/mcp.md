@@ -13,8 +13,9 @@ the web server to be running. It uses the same ALPHABOOK_HOME registry.
 - `list_tasks`, `read_task`: shared tasks, not a per-code-branch plan.
 - `list_decisions`, `read_decision`: decision metadata and full records.
 - `list_documents`, `read_document`: docs/artifacts inside the planning tree.
-- `list_task_commits`: real Task trailers across repository refs, labelled code or
-  planning; explicit recorded commit links and availability are also returned.
+- `list_task_commits`: code commits recorded in the task's `commits` field, with
+  availability, plus alphabook planning commits carrying its Task trailer. Code
+  history is never scanned for trailers.
 - `validate_project`: schema, graph, reference and planning-tree diagnostics.
 
 These 11 tools are read-only. Queries need the local `projectId`; no checkout ID

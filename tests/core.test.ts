@@ -162,14 +162,15 @@ test('malformed external Git edits, non-planning files and reference errors are 
   expect(state.errors.join('\n')).toContain('non-planning');
   expect(state.tasks.some(t => t.ready)).toBe(false);
 });
-test('commit associations span code and planning history, parse real trailers, and disclose bounds', () => {
+test('commit associations use recorded code commits and planning trailers, never code messages', () => {
   const f = setup();
-  git(f.root, ['commit', '--allow-empty', '-m', 'Implementation\n\nTask: T-001']);
-  git(f.root, ['commit', '--allow-empty', '-m', 'Not a trailer\n\nTask: T-001\n\nOrdinary body.']);
-  git(f.root, ['commit', '--allow-empty', '-m', 'Wrong case\n\nTask: t-001']);
+  git(f.root, ['commit', '--allow-empty', '-m', 'Implementation']);
+  const code = git(f.root, ['rev-parse', 'HEAD']).trim();
+  git(f.root, ['commit', '--allow-empty', '-m', 'Unrelated code\n\nTask: T-001']);
+  f.write('tasks/T-001.md', task('T-001', 'done', `commits: [${code}, ${'a'.repeat(40)}]\n`));
   const result = taskCommits(f.project, 'T-001');
-  expect(result.commits.map(c => c.subject).sort()).toEqual(['Implementation', 'Initial plan']);
-  expect(result.commits.map(c => c.kind).sort()).toEqual(['code', 'planning']);
+  expect(result.commits.map(c => `${c.kind}:${c.subject}`).sort()).toEqual(['code:Implementation', 'planning:Initial plan', 'planning:Update planning']);
+  expect(result.recordedCommits).toEqual([{ hash: code, available: true }, { hash: 'a'.repeat(40), available: false }]);
   expect(taskCommits(f.project, 'T-001', 1).truncated).toBe(true);
 });
 test('path traversal, symlink escapes and missing file deletion are refused', () => {

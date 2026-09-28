@@ -23,6 +23,8 @@ repository; do not alter other registered projects without an explicit request.
 Use relevant verification, update this repository's alphabook-branch records, and
 make real commits after each completed task. Code changes are committed on their
 code branch, then planning status/evidence/code hashes are committed to alphabook.
-Include `Task: <id>` trailers. Read AGENT_PRIMER.md for setup, Git-only CRUD and
-concurrency rules. Do not merge alphabook into code history or vice versa. Do not
-push or publish without a request. Do not spawn agents unless explicitly requested.
+Keep code commit messages free of Alphabook metadata: no `Task:` trailers or task
+IDs. Planning commits on alphabook may carry `Task: <id>` trailers. Read
+AGENT_PRIMER.md for setup, Git-only CRUD and concurrency rules. Do not merge
+alphabook into code history or vice versa. Do not push or publish without a request.
+Do not spawn agents unless explicitly requested.

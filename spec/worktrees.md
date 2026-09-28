@@ -15,7 +15,8 @@ code worktrees can each have a task marked in progress in the same plan.
 1. Plan tasks and dependencies on alphabook.
 2. Create code worktrees using ordinary Git and the project's existing code base.
 3. Update each task on alphabook: status, assignee and code branch names.
-4. Implement and test in the code worktree. Commit code with Task trailers.
+4. Implement and test in the code worktree. Commit code normally; code commit
+   messages carry no Alphabook metadata.
 5. Update the central task with evidence and code commit IDs. Use review while
    awaiting review/integration, and done when its acceptance criteria are met.
 6. Integrate code using the project's normal workflow. Never merge alphabook into

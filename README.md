@@ -11,8 +11,8 @@ command line, through an optional MCP server for AI agents, or with plain Git.
   the storage and the history.
 - **Readable by anyone.** People, scripts and agents read the same files. The
   format is [documented](spec/1.0.md) and [schema-validated](schemas/1.0/schema.json).
-- **Linked to code.** Tasks record branches and commits; a `Task: T-001` trailer
-  in a commit message connects the code to the task.
+- **Linked to code, without touching it.** Tasks record the branches and commits
+  that implement them. Your code history carries no Alphabook metadata.
 - **Safe for parallel work.** Every edit is validated and committed with an
   expected-head check, so concurrent writers can't silently overwrite each other.
 
@@ -92,10 +92,12 @@ Show the current project tasks and their dependency graph.
 ```
 
 Dependencies form a graph, and the dashboard shows which tasks are ready to
-start. To link code to a task, add a trailer to the commit:
+start. To link code to a task, commit your code as usual, then record the commit
+in the task:
 
-```sh
-git commit -m "Add project search" -m "Task: T-001"
+```yaml
+branches: [feature/search]
+commits: [3f2a9c1e...]   # full commit ID
 ```
 
 ### Sharing

@@ -306,23 +306,22 @@ export function artifactImage(project: Registration, path: string, head: string,
 export function taskCommits(project: Registration, taskId: string, limit = 100) {
   const state = snapshot(project);
   if (!state.tasks.some(t => t.meta.id === taskId)) throw new Error('Task does not exist in selected snapshot');
-  const heads = worktrees(project).flatMap(t => t.head && !/^0+$/.test(t.head) ? [t.head] : []);
-  const logs = git(project.commonDir, ['log', '--all', ...heads, `--max-count=${limit + 1}`, '--format=%H%x00%s%x00%B%x00', '--']).split('\0');
-  const planningRoots = git(project.commonDir, ['rev-list', '--max-parents=0', state.context.head]).trim().split('\n');
-  const commits: { hash: string; subject: string; tasks: string[]; kind: 'planning' | 'code' }[] = [];
+  // Code history carries no Alphabook metadata: code commits come only from the
+  // task's recorded `commits`, and trailers are read from planning history alone.
+  const recorded = state.tasks.find(t => t.meta.id === taskId)!.meta.commits || [];
+  const recordedCommits = recorded.map(hash => ({ hash, available: gitOrNull(project.commonDir, ['cat-file', '-t', hash]) === 'commit' }));
+  const commits: { hash: string; subject: string; tasks: string[]; kind: 'planning' | 'code' }[] = recordedCommits.flatMap(c => c.available
+    ? [{ hash: c.hash, subject: git(project.commonDir, ['log', '-1', '--format=%s', c.hash, '--']).trim(), tasks: [taskId], kind: 'code' as const }]
+    : []);
+  const logs = git(project.commonDir, ['log', state.context.head, `--max-count=${limit + 1}`, '--format=%H%x00%s%x00%B%x00', '--']).split('\0');
   let scanned = 0, truncated = false;
   for (let i = 0; i + 2 < logs.length; i += 3) {
     if (scanned === limit) { truncated = true; break; }
     const hash = logs[i].trim(), subject = logs[i + 1], body = logs[i + 2];
     const trailers = git(project.commonDir, ['interpret-trailers', '--parse'], body);
     const tasks = trailers.split('\n').flatMap(line => /^task:\s*(\S+)\s*$/i.exec(line)?.[1] || []);
-    if (tasks.includes(taskId)) {
-      let kind: 'planning' | 'code' = 'code';
-      try { git(project.commonDir, ['merge-base', '--is-ancestor', planningRoots[0], hash]); kind = 'planning'; } catch { /* Independent code history. */ }
-      commits.push({ hash, subject, tasks, kind });
-    }
+    if (tasks.includes(taskId)) commits.push({ hash, subject, tasks, kind: 'planning' });
     scanned++;
   }
-  const recorded = state.tasks.find(t => t.meta.id === taskId)!.meta.commits || [];
-  return { commits, scanned, truncated, recordedCommits: recorded.map(hash => ({ hash, available: Boolean(gitOrNull(project.commonDir, ['cat-file', '-t', hash])) })) };
+  return { commits, scanned, truncated, recordedCommits };
 }

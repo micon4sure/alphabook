@@ -61,7 +61,7 @@ export function createMcp(home?: string) {
     if (!document) throw new Error('Document not found in selected planning snapshot');
     return { context: state.context, document, errors: state.errors };
   }));
-  server.registerTool('list_task_commits', { description: 'Find actual Task trailers in Git history reachable from the all repository refs, including detached worktree HEADs; scan limit and truncation are explicit.', inputSchema: { ...contextInput, taskId: z.string(), limit: z.number().int().min(1).max(500).default(100) }, annotations }, args => reply(() => taskCommits(registry.get(args.projectId), args.taskId, args.limit)));
+  server.registerTool('list_task_commits', { description: 'List code commits recorded in the task\'s commits field (with availability) and alphabook planning commits carrying its Task trailer. Code history is never scanned; scan limit and truncation are explicit.', inputSchema: { ...contextInput, taskId: z.string(), limit: z.number().int().min(1).max(500).default(100) }, annotations }, args => reply(() => taskCommits(registry.get(args.projectId), args.taskId, args.limit)));
   server.registerTool('validate_project', { description: 'Validate schema, references, dependencies and paths in the selected snapshot without changing files.', inputSchema: contextInput, annotations }, args => reply(() => {
     const state = read(args); return { context: state.context, valid: state.errors.length === 0, errors: state.errors, revision: state.revision };
   }));

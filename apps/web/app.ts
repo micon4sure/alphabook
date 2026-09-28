@@ -130,7 +130,7 @@ async function loadCommits(id: string) {
   try {
     const result = await api<{ commits: { hash: string; subject: string; kind: string }[]; scanned: number; truncated: boolean; recordedCommits: { hash: string; available: boolean }[] }>(projectUrl(`commits?task=${encodeURIComponent(id)}`));
     if (ticket !== detailSerial || !$('commits')) return;
-    $('commits').innerHTML = `<h3>Linked commits</h3>${result.commits.map(c => `<div class="commit"><code title="${escape(c.hash)}">${c.hash.slice(0, 8)}</code><span>${escape(c.subject)} <span class="hint">· ${escape(c.kind)}</span></span></div>`).join('') || '<p class="hint">No matching Task trailers in the scanned history.</p>'}<p class="hint">${result.scanned} commits scanned across repository refs${result.truncated ? ' · Older history is not included' : ''}</p>`;
+    $('commits').innerHTML = `<h3>Linked commits</h3>${result.commits.map(c => `<div class="commit"><code title="${escape(c.hash)}">${c.hash.slice(0, 8)}</code><span>${escape(c.subject)} <span class="hint">· ${escape(c.kind)}</span></span></div>`).join('') || '<p class="hint">No code commits recorded and no planning commits for this task.</p>'}<p class="hint">${result.scanned} planning commits scanned${result.truncated ? ' · Older history is not included' : ''}</p>`;
   } catch (error) { if (ticket === detailSerial && $('commits')) $('commits').textContent = error instanceof Error ? error.message : String(error); }
 }
 function graph() {

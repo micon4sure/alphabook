@@ -66,11 +66,12 @@ git show alphabook:project.yaml
 git ls-tree -r --name-only alphabook
 git show alphabook:tasks/T-001.md
 git log alphabook --oneline
-git log --all --format='%h %s%n%B' --grep='Task: T-001'
+git log alphabook --format='%h %s%n%B' --grep='Task: T-001'
 ```
 
-The last command is a convenient search, not authoritative trailer parsing: use
-`git interpret-trailers --parse` on commit messages when deriving task associations.
+Code commits for a task are the ones its `commits` field records. The last command
+finds planning commits that touched the task; it is a convenient search, not
+authoritative trailer parsing (use `git interpret-trailers --parse` for that).
 
 Read the task's dependencies, decisions and acceptance criteria. Choose work that
 is planned, unblocked and dependency-ready. Check assignees and branch links before
@@ -143,19 +144,20 @@ branches: [task/T-001]
 
 All agents use the same alphabook plan. Multiple branch names may be linked to one
 task; use separate tasks for independently tracked statuses. Commit source changes
-in the code worktree with ordinary Task trailers, after relevant verification:
+in the code worktree after relevant verification. Code commit messages carry no
+Alphabook metadata: no task IDs, trailers or planning references.
 
 ```sh
 git add src/registry.ts tests/registry.test.ts
-git commit -m "Implement repository registration" -m "Task: T-001"
+git commit -m "Implement repository registration"
 git rev-parse HEAD
 ```
 
 Never sweep unrelated files into the commit. Record evidence, the full resulting
 code commit ID in `commits: [FULL_CODE_COMMIT_ID]`, and review/done in a separate
 planning commit. Use review while awaiting review/integration, and done when the
-task's acceptance criteria are met. Keep Task trailers when squashing. After a
-rebase, reconcile recorded commit IDs; do not pretend missing objects still exist.
+task's acceptance criteria are met. After a squash or rebase, update the recorded
+commit IDs; do not pretend missing objects still exist.
 
 Code and planning updates are two commits, not one atomic operation. If code was
 committed but a planning update failed, report that precisely and finish the

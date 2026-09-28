@@ -31,8 +31,8 @@ changes. Planning commits refresh automatically in the visible dashboard.
 ## Project records and format changes
 
 Read [AGENTS.md](AGENTS.md) and the [agent primer](AGENT_PRIMER.md) before updating
-this project's plan. Code and planning have separate histories. Include task
-trailers in implementation commits and record verification in the shared plan.
+this project's plan. Code and planning have separate histories. Keep code commit
+messages free of Alphabook metadata; record commits and verification in the shared plan.
 
 The [1.0 specification](spec/1.0.md) and [schema](schemas/1.0/schema.json) define
 the portable format. Propose format changes with a concrete use case, examples
